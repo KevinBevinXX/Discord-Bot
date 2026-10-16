@@ -45,7 +45,7 @@ let ready = false;
 
 configModule.onConfigApplied(async (cfg, { first, source }) => {
   context.setConfig(cfg);
-  if (!ready) return; // ready-path applies once we know the guild
+  if (!ready) return; // ready-path applies features once we know the guild; until then just keep the config current
   try {
     await tickets.apply(cfg);
     await reactionRoles.apply(cfg);

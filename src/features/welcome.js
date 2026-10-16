@@ -5,6 +5,7 @@
  */
 const context = require('../context');
 const { fill, log, err } = require('../util');
+const theme = require('../theme');
 
 const TAG = 'welcome';
 
@@ -34,7 +35,13 @@ async function onJoin(member) {
   };
   if (w.welcomeChannelId && w.welcomeMessage) {
     const ch = member.guild.channels.cache.get(w.welcomeChannelId);
-    if (ch && ch.isTextBased()) await ch.send({ content: fill(w.welcomeMessage, vars).slice(0, 1900), allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `welcome send: ${e.message}`));
+    const greet = theme.embed(member.client, {
+      color: theme.COLORS.success,
+      title: `👋 Welcome to ${member.guild.name}!`,
+      description: fill(w.welcomeMessage, vars),
+      footer: `member #${member.guild.memberCount}`,
+    });
+    if (ch && ch.isTextBased()) await ch.send({ embeds: [greet], allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `welcome send: ${e.message}`));
     else err(TAG, `welcome channel ${w.welcomeChannelId} not found or not text`);
   }
   if (w.dmWelcome) {
@@ -49,14 +56,18 @@ async function onLeave(member) {
   if (!w.enabled || !w.leaveChannelId || !w.leaveMessage || member.guild.id !== cfg.general.guildId) return;
   const ch = member.guild.channels.cache.get(w.leaveChannelId);
   if (!ch) return err(TAG, `goodbye channel ${w.leaveChannelId} not found`);
-  await ch.send({
-    content: fill(w.leaveMessage, {
+  const bye = theme.embed(member.client, {
+    color: theme.COLORS.neutral,
+    title: '🚪 Goodbye',
+    description: fill(w.leaveMessage, {
       user: `<@${member.id}>`,
       username: member.user.username,
       server: member.guild.name,
       memberCount: member.guild.memberCount,
-    }).slice(0, 1900),
-  }).catch((e) => err(TAG, `leave send: ${e.message}`));
+    }),
+    footer: 'Welcome & goodbye',
+  });
+  await ch.send({ embeds: [bye] }).catch((e) => err(TAG, `leave send: ${e.message}`));
 }
 
 module.exports = { onJoin, onLeave };

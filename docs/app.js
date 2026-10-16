@@ -53,6 +53,48 @@ async function putFile(path, text, message, sha) {
   return j.content && j.content.sha;
 }
 
+/* ------------------------- discord preview helpers ------------------------ */
+
+function mdLite(text) {
+  return esc(text)
+    .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+    .replace(/\*([^*]+)\*/g, '<i>$1</i>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${u}">${u}</a>`);
+}
+
+const SAMPLES = {
+  user: '@Kevin', username: 'Kevin', level: '7', server: 'Modded Server', memberCount: '42',
+  reason: 'Modpack / mod issue', channel: '#support',
+};
+const SAMPLE_LINES = ['Zero 👋', 'Rex⁶⁴', 'DiamondDave'];
+const SAMPLE_LINES_LOW = ['modder_jane', 'fartman92', 'xX_mlk_Xx'];
+
+function fillSamples(text, extra) {
+  return String(text || '').replace(/\{(\w+)\}/g, (m, k) => (extra && extra[k] !== undefined ? extra[k] : SAMPLES[k] !== undefined ? SAMPLES[k] : m));
+}
+
+/** Renders a Discord-look embed. opts: {color, title, description, fields, footer} */
+function discordLook(opts) {
+  const color = /^#[0-9a-fA-F]{6}$/.test(opts.color || '') ? opts.color : '#5865F2';
+  return `<div class="dc-msg">
+    <div class="dc-avatar">🤖</div>
+    <div class="dc-body">
+      <div class="dc-name">KevinBevinX's Community Bot</div>
+      <div class="dc-embed" style="--ec:${color}">
+        ${opts.title ? `<div class="dc-title">${mdLite(fillSamples(opts.title))}</div>` : ''}
+        ${opts.description ? `<div class="dc-desc">${mdLite(fillSamples(opts.description))}</div>` : ''}
+        ${(opts.fields || []).map((f) => `<div class="dc-field"><div class="fname">${esc(f.name)}</div><div class="fval">${mdLite(fillSamples(f.value))}</div></div>`).join('')}
+        <div class="dc-footer">🤖 KevinBevinX's Community Bot${opts.footer ? ` · ${esc(opts.footer)}` : ''} · just now</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function previewBlock(id) {
+  return `<div class="preview"><div class="section-title">How it looks in Discord</div><div id="${id}"></div></div>`;
+}
+
 /* --------------------------------- set up --------------------------------- */
 
 function loadCreds() {
@@ -106,7 +148,12 @@ async function connect() {
     }
     state.serverState = serverState ? JSON.parse(serverState.text) : null;
     renderCards();
-    setConn('ok', `${state.owner}/${state.repo}@${state.branch}`);
+    let extra = '';
+    if (state.serverState && state.serverState.updatedAt) {
+      const mins = Math.round((Date.now() - new Date(state.serverState.updatedAt).getTime()) / 60000);
+      if (Number.isFinite(mins) && mins >= 0) extra = ` · server snapshot ${mins >= 60 ? Math.round(mins / 60) + 'h' : mins + 'm'} old`;
+    }
+    setConn('ok', `${state.owner}/${state.repo}@${state.branch}${extra}`);
   } catch (e) {
     setConn('err', 'connection failed');
     setupMsg(e.message, false);
@@ -163,7 +210,7 @@ function renderCards() {
       </ol>
     </div></div>
   </div>`;
-  $('cards').innerHTML = cards + setupHtml;
+  $('cards').innerHTML = `<div class="cards-grid">${cards}</div>` + setupHtml;
   document.querySelectorAll('.feat').forEach((el) => el.addEventListener('click', () => openEditor(el.dataset.feat)));
 }
 
@@ -381,6 +428,11 @@ function openEditor(key) {
     prev.innerHTML = `<div class="section-title">XP curve preview</div><p class="muted" id="curvePrev"></p>`;
     body.appendChild(prev);
   }
+  if (['tickets', 'levels', 'welcome', 'reactionRoles', 'automod'].includes(key)) {
+    const prev = document.createElement('div');
+    prev.innerHTML = previewBlock('edPreview');
+    body.appendChild(prev);
+  }
   updateDiff();
   $('overlay').hidden = false;
   document.body.style.overflow = 'hidden';
@@ -390,6 +442,50 @@ function closeEditor() {
   $('overlay').hidden = true;
   document.body.style.overflow = '';
   editing = null;
+}
+
+function updatePreview() {
+  const slot = $('edPreview');
+  if (!slot || !draft) return;
+  let html = '';
+  if (editing === 'tickets') {
+    html = discordLook({ color: draft.panelColor, title: draft.panelTitle, description: draft.panelText, footer: 'Tickets' });
+  } else if (editing === 'levels') {
+    html = discordLook({
+      color: '#23c55e',
+      title: '🎉 Level up!',
+      description: draft.announceMessage,
+      footer: `Levels · ${SAMPLES.server}`,
+    });
+  } else if (editing === 'welcome') {
+    html = discordLook({
+      color: '#23c55e',
+      title: `👋 Welcome to ${SAMPLES.server}!`,
+      description: draft.welcomeMessage,
+      footer: `member #${SAMPLES.memberCount}`,
+    });
+  } else if (editing === 'reactionRoles') {
+    const panel = (draft.panels && draft.panels[0]) || {};
+    html = discordLook({
+      color: '#5865F2',
+      title: panel.embedTitle || 'Pick your roles',
+      description: panel.messageContent || 'React below to get your roles, un-react to drop them.',
+      footer: 'Reaction roles',
+    });
+  } else if (editing === 'automod') {
+    html = discordLook({
+      color: '#ed4245',
+      title: '🛡️ Auto-mod caught: bannedWords',
+      fields: [
+        { name: 'User', value: `@${SAMPLES.username}\n\`kevin\`` },
+        { name: 'Channel', value: '#general' },
+        { name: 'Action', value: draft.bannedWords && draft.bannedWords.action || 'delete+warn' },
+        { name: 'Message', value: 'look at this ***word***' },
+      ],
+      footer: 'Auto-mod',
+    }) + `<p class="muted" style="margin-top:6px">Follow-up in chat: <code>@Kevin, that word is not allowed here. (removed by auto-mod)</code> — auto-deleted after 6s.</p>`;
+  }
+  slot.innerHTML = html;
 }
 
 function updateDiff() {
@@ -404,6 +500,7 @@ function updateDiff() {
   const beforeAll = JSON.parse(JSON.stringify(before));
   const after = draft;
   $('edDiff').textContent = diffText(beforeAll, after) || '(identical)';
+  updatePreview();
 }
 
 function diffText(a, b, path = '') {

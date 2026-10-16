@@ -10,7 +10,8 @@ function setConfig(cfg) {
 }
 
 function currentConfig() {
-  return _config;
+  // never null for callers: schema defaults are valid everywhere
+  return _config || require('./schema').defaults();
 }
 
 function setClient(c) {

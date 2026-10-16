@@ -10,11 +10,11 @@
  * - Commands: /rank /leaderboard /givexp /resetxp live in src/commands.js
  *   and call into this module.
  */
-const { EmbedBuilder } = require('discord.js');
 const Schema = require('../schema');
 const db = require('../db');
 const context = require('../context');
 const { fill, bar, fmtNum, log, err, hasAnyRole, isAdmin } = require('../util');
+const theme = require('../theme');
 
 const TAG = 'levels';
 const cooldowns = new Map(); // `${guildId}:${userId}` -> last xp ms
@@ -69,8 +69,14 @@ async function celebrate(message, newLevel, L, cfg) {
     level: newLevel,
     server: message.guild.name,
   });
-  await where.send({ content: text.slice(0, 1900), allowedMentions: { users: [message.author.id] } }).catch((e) => err(TAG, `announce: ${e.message}`));
-  if (L.dmLevelUp) message.author.send(text.slice(0, 1900)).catch(() => {});
+  const ann = theme.embed(message.client, {
+    color: theme.COLORS.success,
+    title: '🎉 Level up!',
+    description: text,
+    footer: `Levels · ${message.guild.name}`,
+  });
+  await where.send({ embeds: [ann], allowedMentions: { users: [message.author.id] } }).catch((e) => err(TAG, `announce: ${e.message}`));
+  if (L.dmLevelUp) message.author.send({ embeds: [ann] }).catch(() => {});
   log(TAG, `${message.author.username} reached level ${newLevel}`);
 
   if ((L.roleRewards || []).length) {
@@ -117,9 +123,10 @@ async function rankCard(interaction, targetUser) {
   const rank = db.leaderboardRank(interaction.guildId, targetUser.id);
   const nextAt = row.level >= L.maxLevel ? null : Schema.totalXpForLevel(row.level, L.xpBase, L.xpGrowth) + cost;
 
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle(`${member ? member.displayName : targetUser.username}'s level card`)
+  const embed = theme.embed(interaction.client, {
+    title: `${member ? member.displayName : targetUser.username}'s level card`,
+    footer: `Levels · rank command`,
+  })
     .setThumbnail(member ? member.displayAvatarURL({ size: 128 }) : targetUser.displayAvatarURL({ size: 128 }))
     .addFields(
       { name: 'Level', value: `**${row.level}**${row.level >= L.maxLevel ? ' (max)' : ''}`, inline: true },
@@ -145,11 +152,11 @@ async function leaderboard(interaction, page) {
     const medal = atLeast + i === 0 ? '🥇' : atLeast + i === 1 ? '🥈' : atLeast + i === 2 ? '🥉' : `**${atLeast + i + 1}.**`;
     return `${medal} <@${r.userId}> — level **${r.level}** · ${fmtNum(r.xp)} xp into level · ${fmtNum(r.messages)} msgs`;
   });
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle(`🏆 Leaderboard — page ${page}`)
-    .setDescription(lines.join('\n'))
-    .setFooter({ text: `${fmtNum(db.totalTracked(interaction.guildId))} members tracked · /leaderboard <page>` });
+  const embed = theme.embed(interaction.client, {
+    title: `🏆 Leaderboard — page ${page}`,
+    description: lines.join('\n'),
+    footer: `${fmtNum(db.totalTracked(interaction.guildId))} members tracked · /leaderboard <page>`,
+  });
   await interaction.reply({ embeds: [embed] }).catch(() => {});
 }
 

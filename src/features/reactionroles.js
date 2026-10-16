@@ -13,6 +13,7 @@
 const { log, err, emojiKey, parseEmoji, toReact, safeSend } = require('../util');
 const runtime = require('../runtime');
 const context = require('../context');
+const theme = require('../theme');
 
 const TAG = 'reactionroles';
 
@@ -74,10 +75,16 @@ async function ensureMessage(client, guild, panel, guildId) {
       }
       if (!messageId) {
         const parts = [panel.messageContent || ''];
-        const msg = await channel.send({
-          content: (panel.messageContent || `React below for roles! (${panel.name})`).slice(0, 2000),
-          embeds: panel.embedTitle ? [{ title: panel.embedTitle }] : [],
-        }).catch((e) => { err(TAG, `posting panel ${panel.name} failed: ${e.message}`); return null; });
+        const client = context.getClient();
+        const payload = panel.messageContent || panel.embedTitle
+          ? { embeds: [theme.embed(client, {
+              color: theme.COLORS.primary,
+              title: panel.embedTitle || 'Pick your roles',
+              description: (panel.messageContent || 'React below to get your roles, un-react to drop them.').slice(0, 4096),
+              footer: 'Reaction roles',
+            })] }
+          : { content: `React below for roles! (${panel.name})` };
+        const msg = await channel.send(payload).catch((e) => { err(TAG, `posting panel ${panel.name} failed: ${e.message}`); return null; });
         if (!msg) return null;
         messageId = msg.id;
         runtime.set('reactionPanels', { ...savedMap(), [guildId]: { ...(savedMap()[guildId] || {}), [panel.name]: messageId } });

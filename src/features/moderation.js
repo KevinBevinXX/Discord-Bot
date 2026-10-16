@@ -5,6 +5,7 @@
 const db = require('../db');
 const context = require('../context');
 const { isAdmin, hasAnyRole, log } = require('../util');
+const theme = require('../theme');
 
 const TAG = 'moderation';
 
@@ -57,10 +58,13 @@ async function warnings(interaction) {
     return void interaction.reply({ content: `**${target.username}** has a clean record. 🕊️`, ephemeral: true }).catch(() => {});
   }
   const lines = rows.map((r) => `• \`#${r.id}\` <t:${r.createdAt}:R> — **${r.source.startsWith('automod:') ? r.source.slice(8) : 'manual'}**${r.reason ? ` — ${r.reason.slice(0, 80)}` : ''}`);
-  await interaction.reply({
-    content: `🧾 **${target.username}** — ${count} strike${count === 1 ? '' : 's'} (showing latest ${rows.length}):\n${lines.join('\n')}`.slice(0, 1900),
-    ephemeral: true,
-  }).catch(() => {});
+  const embed = theme.embed(interaction.client, {
+    color: count >= 3 ? theme.COLORS.danger : theme.COLORS.warn,
+    title: `🧾 ${target.username} — ${count} strike${count === 1 ? '' : 's'}`,
+    description: lines.join('\n').slice(0, 4000),
+    footer: 'showing latest ' + rows.length,
+  });
+  await interaction.reply({ embeds: [embed], ephemeral: true }).catch(() => {});
 }
 
 async function clear(interaction) {

@@ -25,9 +25,10 @@ const COMMANDS = [
     data: new SlashCommandBuilder().setName('help').setDescription('What this bot does and how to configure it'),
     handle: async (interaction) => {
       const cfg = context.currentConfig();
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle("KevinBevinX's Community Bot")
+      const embed = theme.embed(interaction.client, {
+        title: "KevinBevinX's Community Bot",
+        footer: '/help',
+      })
         .setDescription(' Tickets 🎫 · Reaction roles 🔁 · Levels 📶 · Auto-mod 🛡️ · Welcome 👋 · Warnings ⚠️')
         .addFields(
           { name: 'Ticket system', value: 'Use the panel button, pick a reason, staff claim & close with a reason. Transcripts land in the log channel.' },
@@ -42,9 +43,10 @@ const COMMANDS = [
     data: new SlashCommandBuilder().setName('botinfo').setDescription('Uptime, config source, feature status'),
     handle: async (interaction) => {
       const cfg = context.currentConfig();
-      const embed = new EmbedBuilder()
-        .setColor(0x5865f2)
-        .setTitle('Bot status')
+      const embed = theme.embed(interaction.client, {
+        title: 'Bot status',
+        footer: '/botinfo',
+      })
         .addFields(
           { name: 'Config source', value: process.env.GITHUB_REPO ? `github.com/${process.env.GITHUB_REPO} (${process.env.GITHUB_BRANCH || 'main'})` : 'default (no repo configured)', inline: true },
           { name: 'Feature state', value: [

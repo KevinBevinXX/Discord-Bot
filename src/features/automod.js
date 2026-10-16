@@ -130,10 +130,10 @@ class SpamTracker {
 
 // ---------------------------------------------------------------- gateway side
 
-const { EmbedBuilder } = require('discord.js');
 const db = require('../db');
 const context = require('../context');
 const { err, isAdmin, hasAnyRole } = require('../util');
+const theme = require('../theme');
 
 const TAG = 'automod';
 const spam = new SpamTracker();
@@ -243,16 +243,17 @@ function logEmbed(message, cfg, rule, excerpt, action) {
   if (!logId) return;
   const ch = message.guild.channels.cache.get(logId);
   if (!ch || !ch.isTextBased()) return;
-  const embed = new EmbedBuilder()
-    .setColor(0xed4245)
-    .setTitle(`Auto-mod: ${rule}`)
-    .addFields(
+  const embed = theme.embed(message.client, {
+    color: theme.COLORS.danger,
+    title: `🛡️ Auto-mod caught: ${rule}`,
+    fields: [
       { name: 'User', value: `<@${message.author.id}> (\`${message.author.username}\`)`, inline: true },
       { name: 'Channel', value: `<#${message.channelId}>`, inline: true },
       { name: 'Action', value: action, inline: true },
-      { name: 'Message', value: (`${excerpt || '(no text)'}`).slice(0, 1000) },
-    )
-    .setTimestamp();
+      { name: 'Message', value: excerpt || '(no text)', inline: false },
+    ],
+    footer: `Auto-mod`,
+  });
   ch.send({ embeds: [embed] }).catch(() => {});
 }
 

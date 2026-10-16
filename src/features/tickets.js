@@ -23,9 +23,11 @@ const {
   ChannelType,
 } = require('discord.js');
 const db = require('../db');
+const context = require('../context');
 const runtime = require('../runtime');
 const { buildTranscriptHtml } = require('../transcript');
 const { fill, hasAnyRole, isAdmin, log, err, displayEmoji, parseEmoji } = require('../util');
+const theme = require('../theme');
 
 const TAG = 'tickets';
 const IDs = {
@@ -89,10 +91,13 @@ async function apply(config) {
 
 function panelPayload(t) {
   const color = parseInt(String(t.panelColor || '#5865F2').replace('#', ''), 16);
-  const embed = new EmbedBuilder()
-    .setColor(color)
-    .setTitle(t.panelTitle || 'Need help?')
-    .setDescription((t.panelText || '').slice(0, 4000));
+  const client = context.getClient();
+  const embed = theme.embed(client, {
+    color,
+    title: t.panelTitle || 'Need help?',
+    description: t.panelText || '',
+    footer: 'Tickets',
+  });
   return {
     embeds: [embed],
     components: [new ActionRowBuilder().addComponents(
@@ -236,21 +241,23 @@ async function createTicketChannel(guild, opener, reason, pingIds, cfg) {
 
   db.createTicketRow(cfg.general.guildId, channel.id, number, opener.id, reason.label, Math.floor(Date.now() / 1000));
 
-  const embed = new EmbedBuilder()
-    .setColor(0x5865f2)
-    .setTitle(`${displayEmoji(reason.emoji) || '🎫'} ${reason.label}`.slice(0, 250))
-    .setDescription(fill(t.greeting || 'Ticket for **{reason}**.', {
+  const client = context.getClient();
+  const embed = theme.embed(client, {
+    color: theme.COLORS.success,
+    title: `${displayEmoji(reason.emoji) || '🎫'} ${reason.label}`.slice(0, 256),
+    description: fill(t.greeting || 'Ticket for **{reason}**.', {
       user: `<@${opener.id}>`,
       username: opener.user.username,
       reason: reason.label,
       server: guild.name,
-    }))
-    .addFields(
+    }),
+    fields: [
       { name: 'Opened by', value: `<@${opener.id}>`, inline: true },
       { name: 'Claimed by', value: '—', inline: true },
-    )
-    .setFooter({ text: `Ticket #${number}` })
-    .setTimestamp(new Date());
+    ],
+    footer: `Ticket #${number}`,
+  });
+  embed.setColor(theme.COLORS.success);
 
   const initMsg = await channel.send({
     embeds: [embed],
@@ -279,6 +286,7 @@ async function handleClaim(interaction) {
   try {
     const msg = await interaction.channel.messages.fetch(row.initMessageId);
     const embed = EmbedBuilder.from(msg.embeds[0])
+      .setColor(theme.COLORS.success)
       .spliceFields(1, 1, { name: 'Claimed by', value: `<@${interaction.user.id}>`, inline: true });
     await msg.edit({ embeds: [embed] });
   } catch (e) {
@@ -378,8 +386,19 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
       const target = await resolveChannel(client, guild.id, t.logChannelId || cfg.general.logChannelId);
       if (target) {
         const buf = Buffer.from(html, 'utf8');
+        const logEmbed = theme.embed(context.getClient(), {
+          color: theme.COLORS.neutral,
+          title: `📄 Transcript — Ticket #${row.number}`,
+          fields: [
+            { name: 'Reason', value: row.reason || '—', inline: true },
+            { name: 'Opened by', value: `<@${row.userId}>`, inline: true },
+            { name: 'Closed by', value: `<@${closer.id}>`, inline: true },
+            { name: 'Close reason', value: reasonText || '—', inline: false },
+          ],
+          footer: 'Tickets',
+        });
         const sent = await target.send({
-          content: `📄 Ticket **#${row.number}** (${row.reason}) — opened by <@${row.userId}>, closed by <@${closer.id}>` + (reasonText ? ` — reason: ${reasonText}` : ''),
+          embeds: [logEmbed],
           files: [{ attachment: buf, name: `ticket-${String(row.number).padStart(4, '0')}-transcript.html` }],
         }).catch((e) => { err(TAG, `transcript send failed: ${e.message}`); return null; });
         if (sent) transcriptUrlNote = sent.url;
@@ -404,7 +423,7 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
   try {
     const msg = await channel.messages.fetch(row.initMessageId);
     const embed = EmbedBuilder.from(msg.embeds[0])
-      .setColor(0x7f8c8d)
+      .setColor(theme.COLORS.neutral)
       .addFields(
         { name: 'Status', value: '🔒 Closed', inline: true },
         { name: 'Closed by', value: `<@${closer.id}>`, inline: true },
@@ -487,7 +506,7 @@ function logToChannel(cfg, content) {
   const guild = client.guilds.cache.get(cfg.general.guildId);
   if (!guild) return;
   const ch = guild.channels.cache.get(target);
-  if (ch && ch.isTextBased()) ch.send(content.slice(0, 1900)).catch(() => {});
+  if (ch && ch.isTextBased()) ch.send({ embeds: [theme.embed(client, { color: theme.COLORS.neutral, description: content, footer: 'Tickets' })] }).catch(() => {});
 }
 
 function replyOnce(interaction, content) {
