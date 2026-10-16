@@ -1,0 +1,23 @@
+{
+  "name": "kevinbevinx-community-bot",
+  "version": "1.0.0",
+  "description": "KevinBevinX's Community Bot — tickets, reaction roles, levels, auto-moderation, configured from a GitHub Pages dashboard",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node tools/check.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js"
+  ],
+  "author": "KevinBevinX",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  }
+}

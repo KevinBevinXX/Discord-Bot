@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KevinBevinX's Community Bot — dashboard</title>
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="data:,image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">🤖</span>
+    <div><h1>KevinBevinX's Community Bot</h1><span class="sub">configure → commit → the bot picks it up</span></div>
+  </div>
+  <div class="conn" id="connStatus"></div>
+</header>
+
+<main class="wrap">
+  <section class="card setup" id="setupCard">
+    <div class="card-head"><span class="icon">🔌</span><div><h2>Connect to the repo</h2><p class="muted">Everything below is stored in your browser only.</p></div></div>
+    <div class="grid-4">
+      <label>Repo owner<input id="inOwner" placeholder="KevinBevinXX" autocomplete="off" spellcheck="false"></label>
+      <label>Repo name<input id="inRepo" placeholder="community-bot" autocomplete="off" spellcheck="false"></label>
+      <label>Branch<input id="inBranch" placeholder="main" autocomplete="off" spellcheck="false"></label>
+      <label>Fine-grained token <a class="mini" href="#" id="patLink" target="_blank" rel="noopener">get one →</a><input id="inToken" type="password" placeholder="github_pat_…" autocomplete="off" spellcheck="false"></label>
+    </div>
+    <div class="row">
+      <button id="btnConnect" class="btn primary">Connect & load</button>
+      <button id="btnForget" class="btn ghost">Forget token</button>
+      <span id="setupMsg" class="msg"></span>
+    </div>
+  </section>
+
+  <section id="cards"></section>
+</main>
+
+<!-- editor overlay -->
+<div class="overlay" id="overlay" hidden>
+  <div class="editor">
+    <div class="editor-head">
+      <span class="icon" id="edIcon"></span>
+      <div><h2 id="edTitle"></h2><p class="muted" id="edBlurb"></p></div>
+      <button class="btn ghost" id="edClose">✕ Close</button>
+    </div>
+    <div class="editor-body" id="edBody"></div>
+    <div class="editor-foot">
+      <details class="diffbox"><summary>show JSON changes</summary><pre id="edDiff"></pre></details>
+      <div class="row">
+        <span id="edMsg" class="msg"></span>
+        <button class="btn ghost" id="edRevert">Discard changes</button>
+        <button class="btn primary" id="edSave">💾 Save to GitHub</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+<script src="schema.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

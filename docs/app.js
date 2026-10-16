@@ -1,0 +1,482 @@
+/* Dashboard for KevinBevinX's Community Bot.
+ * Talks straight to the GitHub Contents API from the browser; the bot polls
+ * config.json and applies it live. Credentials live in localStorage only.
+ * Schema (window.CommunitySchema) is the same file the bot validates with. */
+/* global CommunitySchema */
+'use strict';
+
+const S = CommunitySchema;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+const LS_CREDS = 'kcb:creds';
+
+const state = {
+  owner: '', repo: '', branch: 'main', token: '',
+  config: null,   // parsed config.json (validated view)
+  sha: null,      // current blob sha for PUT
+  serverState: null, // state.json (channels/roles for pickers)
+};
+
+/* -------------------------------- blob api -------------------------------- */
+
+function apiRoot() {
+  return `https://api.github.com/repos/${state.owner}/${state.repo}`;
+}
+function headers(base) {
+  const h = { Accept: 'application/vnd.github+json', ...(base || {}) };
+  if (state.token) h.Authorization = `Bearer ${state.token}`;
+  return h;
+}
+
+async function getFile(path) {
+  const res = await fetch(`${apiRoot()}/contents/${path}?ref=${encodeURIComponent(state.branch)}`, { headers: headers() });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`GitHub ${res.status} — ${res.status === 403 ? 'check your token (needs Contents: read/write on this repo)' : 'error'}`);
+  const j = await res.json();
+  return { sha: j.sha, text: j.content ? new TextDecoder().decode(Uint8Array.from(atob(j.content.replace(/\s/g, '')), (c) => c.charCodeAt(0))) : '' };
+}
+
+async function putFile(path, text, message, sha) {
+  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+  const res = await fetch(`${apiRoot()}/contents/${path}`, {
+    method: 'PUT',
+    headers: headers({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ message, content: b64, branch: state.branch, ...(sha ? { sha } : {}) }),
+  });
+  if (!res.ok) {
+    const t = await res.text().catch(() => '');
+    throw new Error(`commit failed (GitHub ${res.status}): ${t.slice(0, 200)}`);
+  }
+  const j = await res.json();
+  return j.content && j.content.sha;
+}
+
+/* --------------------------------- set up --------------------------------- */
+
+function loadCreds() {
+  try {
+    const c = JSON.parse(localStorage.getItem(LS_CREDS) || 'null');
+    if (c) {
+      $('inOwner').value = state.owner = c.owner || '';
+      $('inRepo').value = state.repo = c.repo || '';
+      $('inBranch').value = state.branch = c.branch || 'main';
+      if (c.token) $('inToken').placeholder = '••••• stored — leave blank to reuse';
+      state.token = c.token || '';
+    }
+  } catch { /* fresh */ }
+}
+
+function saveCreds() {
+  const old = JSON.parse(localStorage.getItem(LS_CREDS) || '{}');
+  localStorage.setItem(LS_CREDS, JSON.stringify({
+    owner: state.owner, repo: state.repo, branch: state.branch,
+    token: $('inToken').value ? $('inToken').value : old.token || '',
+  }));
+}
+
+function setConn(kind, text) {
+  $('connStatus').innerHTML = `<span class="dot ${kind}"></span>${esc(text)}`;
+}
+
+async function connect() {
+  state.owner = $('inOwner').value.trim().replace(/\/.*$/, '');
+  state.repo = $('inRepo').value.trim();
+  state.branch = $('inBranch').value.trim() || 'main';
+  state.token = $('inToken').value.trim() || state.token;
+  if (!state.owner || !state.repo) {
+    setupMsg('Fill in the owner and repo name first.', false);
+    return;
+  }
+  saveCreds();
+  setConn('warn', 'loading…');
+  try {
+    const [cfg, serverState] = await Promise.all([getFile('config.json'), getFile('state.json')]);
+    if (cfg) {
+      const validated = S.validate(JSON.parse(cfg.text));
+      state.config = validated.config;
+      state.sha = cfg.sha;
+      if (validated.errors.length) setupMsg(`Loaded — but ${validated.errors.length} value(s) fell back to defaults (see each card).`, false);
+      else setupMsg('Connected.', true);
+    } else {
+      state.config = S.defaults();
+      state.sha = null;
+      setupMsg('No config.json yet — the card views below can create it on first save.', false);
+    }
+    state.serverState = serverState ? JSON.parse(serverState.text) : null;
+    renderCards();
+    setConn('ok', `${state.owner}/${state.repo}@${state.branch}`);
+  } catch (e) {
+    setConn('err', 'connection failed');
+    setupMsg(e.message, false);
+  }
+}
+
+function setupMsg(text, ok) {
+  const el = $('setupMsg');
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+}
+
+/* -------------------------------- rendering ------------------------------- */
+
+let editing = null; // feature key currently open
+
+function featValues(key) {
+  return (state.config || S.defaults())[key];
+}
+
+function featureSummary(f) {
+  const v = featValues(f.key);
+  const enabled = v.enabled !== false;
+  switch (f.key) {
+    case 'general': return `${v.adminRoleIds.length} admin role(s)`;
+    case 'tickets': return `${(v.reasons || []).length} reasons · ${(v.claimRoleIds || []).length} staff role(s)`;
+    case 'reactionRoles': return `${v.panels.length} panel(s)`;
+    case 'levels': return `XP ${v.xpMin}–${v.xpMax} per message · max level ${v.maxLevel} · ${v.roleRewards.length} reward(s)`;
+    case 'automod': return `${Object.entries(v).filter(([k, x]) => x && typeof x === 'object' && x.enabled).length} filter(s) on`;
+    case 'welcome': return v.welcomeChannelId ? 'greeting set' : 'not configured yet';
+    default: return '';
+  }
+}
+
+function renderCards() {
+  const cards = S.FEATURES.map((f) => {
+    const v = featValues(f.key);
+    const on = f.key === 'general' ? true : v.enabled !== false;
+    return `<div class="card feat" data-feat="${f.key}">
+      <div class="card-head"><span class="icon">${f.icon}</span>
+        <div><h3>${esc(f.name)}</h3><p class="muted">${esc(f.blurb)}</p><div class="count">${esc(featureSummary(f))}</div></div>
+      </div>
+      <span class="state ${on ? 'on' : ''}">${on ? 'ON' : 'OFF'}</span>
+    </div>`;
+  }).join('');
+  const setupHtml = `
+  <div class="card">
+    <div class="card-head"><span class="icon">🧰</span><div><h3>First-time setup (once)</h3>
+      <ol class="steps">
+        <li><b>Bot token:</b> create a Discord application at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener">discord.com/developers</a> → Bot → Reset Token. Put it in the bot's <code>.env</code> on the server. Also enable <b>Server Members</b> and <b>Message Content</b> intents there.</li>
+        <li><b>Repo + Pages:</b> push this project to <code>${esc(state.owner || 'owner')}/${esc(state.repo || 'repo')}</code>, then repo <b>Settings → Pages</b> → Source: <i>Deploy from a branch</i>, branch <code>${esc(state.branch)}</code>, folder <code>/docs</code>. Open the URL shown there — this page, live.</li>
+        <li><b>Config permission:</b> create a fine-grained token (link in the token field) limited to <i>this repo</i> with <b>Contents: Read and write</b>, and paste it above. That is what lets the website commit your settings.</li>
+        <li><b>Invite the bot:</b> README has the invite link + the exact permissions.</li>
+      </ol>
+    </div></div>
+  </div>`;
+  $('cards').innerHTML = cards + setupHtml;
+  document.querySelectorAll('.feat').forEach((el) => el.addEventListener('click', () => openEditor(el.dataset.feat)));
+}
+
+/* ------------------------------ form building ----------------------------- */
+
+function hintEl(hint) {
+  return hint ? `<span class="hint">${esc(hint)}</span>` : '';
+}
+
+function channelOptions() {
+  const rows = (state.serverState && state.serverState.channels) || [];
+  return rows.filter((c) => c.type === 'text' || c.type === 'announcement');
+}
+function roleOptions() {
+  const rows = (state.serverState && state.serverState.roles) || [];
+  return rows.filter((r) => !r.managed);
+}
+
+function labelFor(list, id) {
+  const row = list.find((x) => x.id === id);
+  return row ? `#${row.name}` : id ? `id: ${String(id).slice(0, 8)}…` : '(not set)';
+}
+
+function buildField(field, value, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'fld';
+  const labelText = `${field.label}${field.required ? ' *' : ''}`;
+  switch (field.type) {
+    case 'bool': {
+      wrap.innerHTML = `<label class="toggle"><input type="checkbox" ${value ? 'checked' : ''}><span class="lbltext">${esc(field.label)}</span></label>${hintEl(field.hint)}`;
+      wrap.querySelector('input').addEventListener('change', (e) => onChange(e.target.checked));
+      return wrap;
+    }
+    case 'number': {
+      wrap.innerHTML = `<label>${esc(labelText)}<input type="number" value="${esc(value)}" ${field.min !== undefined ? `min="${field.min}"` : ''} ${field.max !== undefined ? `max="${field.max}"` : ''} ${field.step ? `step="${field.step}"` : ''}>${hintEl(field.hint)}</label>`;
+      wrap.querySelector('input').addEventListener('input', (e) => onChange(parseFloat(e.target.value)));
+      return wrap;
+    }
+    case 'text':
+    case 'emoji':
+    case 'color': {
+      wrap.innerHTML = `<label>${esc(labelText)}<input type="text" value="${esc(value || '')}" maxlen="${field.max || 200}">${hintEl(field.hint)}</label>`;
+      wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+      return wrap;
+    }
+    case 'textarea': {
+      wrap.innerHTML = `<label>${esc(labelText)}<textarea>${esc(value || '')}</textarea>${hintEl(field.hint)}</label>`;
+      wrap.querySelector('textarea').addEventListener('input', (e) => onChange(e.target.value));
+      return wrap;
+    }
+    case 'channel': {
+      const opts = channelOptions();
+      if (opts.length) {
+        wrap.innerHTML = `<label>${esc(labelText)}<select><option value="">(none)</option>${opts.map((c) => `<option value="${esc(c.id)}" ${c.id === value ? 'selected' : ''}>${esc(c.category ? c.category + ' / ' : '')}${esc(c.name)}</option>`).join('')}</select>${hintEl(field.hint)}</label>`;
+        wrap.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));
+      } else {
+        wrap.innerHTML = `<label>${esc(labelText)}<input type="text" value="${esc(value || '')}" placeholder="channel ID — connect a live bot to get dropdowns">${hintEl(field.hint)}</label>`;
+        wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+      }
+      return wrap;
+    }
+    case 'channels': case 'roles': {
+      const opts = field.type === 'channels' ? channelOptions() : roleOptions();
+      const picked = new Set(value || []);
+      if (opts.length) {
+        const prefix = field.type === 'channels' ? '#' : '@';
+        wrap.innerHTML = `<label>${esc(field.label)}<div class="chips">${opts.map((c) => `<span class="chip ${picked.has(c.id) ? 'on' : ''}" data-id="${esc(c.id)}">${prefix}${esc(c.name)}</span>`).join('')}</div></label>`;
+        wrap.querySelectorAll('.chip').forEach((chip) => chip.addEventListener('click', () => {
+          const id = chip.dataset.id;
+          if (picked.has(id)) picked.delete(id); else picked.add(id);
+          chip.classList.toggle('on');
+          onChange([...picked]);
+        }));
+      } else {
+        wrap.innerHTML = `<label>${esc(field.label)}<input type="text" value="${esc((value || []).join(','))}" placeholder="IDs separated by commas">${hintEl(field.hint)}</label>`;
+        wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value.split(/[,\s]+/).filter(Boolean)));
+      }
+      return wrap;
+    }
+    case 'role': {
+      const opts = roleOptions();
+      if (opts.length) {
+        wrap.innerHTML = `<label>${esc(labelText)}<select><option value="">(none)</option>${opts.map((r) => `<option value="${esc(r.id)}" ${r.id === value ? 'selected' : ''}>${esc(r.name)}</option>`).join('')}</select>${hintEl(field.hint)}</label>`;
+        wrap.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));
+      } else {
+        wrap.innerHTML = `<label>${esc(labelText)}<input type="text" value="${esc(value || '')}" placeholder="role ID">${hintEl(field.hint)}</label>`;
+        wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+      }
+      return wrap;
+    }
+    case 'select': {
+      wrap.innerHTML = `<label>${esc(labelText)}<select>${field.options.map((o) => `<option value="${esc(o.value)}" ${o.value === value ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${hintEl(field.hint)}</label>`;
+      wrap.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));
+      return wrap;
+    }
+    case 'action': {
+      const opts = [
+        { value: 'none', label: 'Do nothing' },
+        { value: 'delete', label: 'Delete the message' },
+        { value: 'delete+warn', label: 'Delete + warn the user' },
+        { value: 'delete+timeout', label: 'Delete + timeout the user' },
+      ];
+      wrap.innerHTML = `<label>${esc(labelText)}<select>${opts.map((o) => `<option value="${esc(o.value)}" ${o.value === value ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select></label>`;
+      wrap.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));
+      return wrap;
+    }
+    case 'wordlist': {
+      wrap.innerHTML = `<label>${esc(labelText)}<textarea>${esc((value || []).join('\n'))}</textarea>${hintEl(field.hint)}</label>`;
+      wrap.querySelector('textarea').addEventListener('input', (e) => onChange(e.target.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)));
+      return wrap;
+    }
+    default:
+      wrap.innerHTML = `<p class="muted">unsupported field ${esc(field.type)}</p>`;
+      return wrap;
+  }
+}
+
+function defaultItem(listField) {
+  const item = {};
+  for (const sub of listField.item) {
+    item[sub.key] = sub.def !== undefined ? JSON.parse(JSON.stringify(sub.def)) : (sub.required ? (sub.type === 'number' ? 1 : '') : sub.type === 'number' ? 0 : sub.type === 'bool' ? false : sub.type === 'roles' || sub.type === 'channels' || sub.type === 'wordlist' ? [] : '');
+  }
+  return item;
+}
+
+function buildList(listField, items, onChange) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="section-title">${esc(listField.label)}</div>${listField.hint ? `<p class="muted">${esc(listField.hint)}</p>` : ''}`;
+  const listEl = document.createElement('div');
+  const render = () => {
+    listEl.innerHTML = '';
+    if (!items.length) listEl.innerHTML = '<p class="list-empty">Nothing here yet — add one below.</p>';
+    items.forEach((item, idx) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'list-item';
+      const title = `#${idx + 1}`;
+      itemEl.innerHTML = `<button class="btn small danger rm">remove</button><h4>${esc(`#${idx + 1}`)} ${esc(item.name || item.label || item.emoji || '')}</h4>`;
+      itemEl.querySelector('.rm').addEventListener('click', () => {
+        items.splice(idx, 1);
+        onChange(items);
+        render();
+      });
+      const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      listField.item.forEach((sub) => {
+        grid.appendChild(buildField(sub, item[sub.key], (val) => {
+          item[sub.key] = val;
+          onChange(items);
+          const h4 = itemEl.querySelector('h4');
+          if (h4) h4.textContent = `${title} ${item.name || item.label || item.emoji || ''}`;
+        }));
+      });
+      itemEl.appendChild(grid);
+      listEl.appendChild(itemEl);
+    });
+    const add = document.createElement('div');
+    add.className = 'addwrap';
+    add.innerHTML = `<button class="btn small">+ add</button>`;
+    add.querySelector('button').addEventListener('click', () => {
+      items.push(defaultItem(listField));
+      onChange(items);
+      render();
+      const last = listEl.querySelector('.list-item:last-of-type input');
+      if (last) last.focus();
+    });
+    listEl.appendChild(add);
+  };
+  render();
+  wrap.appendChild(listEl);
+  return wrap;
+}
+
+/* --------------------------------- editor --------------------------------- */
+
+let draft = null; // deep copy being edited
+
+function openEditor(key) {
+  editing = key;
+  const f = S.FEATURES.find((x) => x.key === key);
+  draft = JSON.parse(JSON.stringify(featValues(key)));
+  $('edIcon').textContent = f.icon;
+  $('edTitle').textContent = f.name;
+  $('edBlurb').textContent = f.blurb;
+  const body = $('edBody');
+  body.innerHTML = '';
+  for (const field of f.fields) {
+    if (field.type === 'list') {
+      body.appendChild(buildList(field, draft[field.key], () => updateDiff()));
+    } else if (field.type === 'group') {
+      const g = document.createElement('div');
+      g.className = 'group';
+      g.innerHTML = `<div class="gtitle">${esc(field.label)}</div>${field.hint ? `<p class="group-hint">${esc(field.hint)}</p>` : ''}`;
+      const grid = document.createElement('div');
+      grid.className = 'grid-2';
+      for (const sub of field.fields) {
+        grid.appendChild(buildField(sub, draft[field.key][sub.key], (val) => {
+          draft[field.key][sub.key] = val;
+          updateDiff();
+        }));
+      }
+      g.appendChild(grid);
+      body.appendChild(g);
+    } else {
+      const holder = document.createElement('div');
+      body.appendChild(holder);
+      holder.appendChild(buildField(field, draft[field.key], (val) => {
+        draft[field.key] = val;
+        updateDiff();
+      }));
+    }
+  }
+  // levels curve preview
+  if (key === 'levels') {
+    const prev = document.createElement('div');
+    prev.innerHTML = `<div class="section-title">XP curve preview</div><p class="muted" id="curvePrev"></p>`;
+    body.appendChild(prev);
+  }
+  updateDiff();
+  $('overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditor() {
+  $('overlay').hidden = true;
+  document.body.style.overflow = '';
+  editing = null;
+}
+
+function updateDiff() {
+  if (editing === 'levels' && $('curvePrev')) {
+    const L = draft;
+    const rows = [];
+    for (let i = 0; i < 6 && i < L.maxLevel; i++) rows.push(`level ${i + 1} costs ${S.costToNext(i, L.xpBase, L.xpGrowth)} XP`);
+    rows.push(`… totalling ${S.totalXpForLevel(Math.min(L.maxLevel, 6), L.xpBase, L.xpGrowth)} XP for level 6`);
+    $('curvePrev').textContent = rows.join(' · ');
+  }
+  const before = featValues(editing);
+  const beforeAll = JSON.parse(JSON.stringify(before));
+  const after = draft;
+  $('edDiff').textContent = diffText(beforeAll, after) || '(identical)';
+}
+
+function diffText(a, b, path = '') {
+  const out = [];
+  const walk = (x, y, p) => {
+    if (x === y) return;
+    if (typeof x !== typeof y || x === null || y === null || typeof x !== 'object') {
+      if (JSON.stringify(x) !== JSON.stringify(y)) out.push(`${p}: ${JSON.stringify(x)} → ${JSON.stringify(y)}`);
+      return;
+    }
+    const keys = new Set([...Object.keys(x), ...Object.keys(y)]);
+    for (const k of keys) walk(x[k], y[k], p ? `${p}.${k}` : k);
+  };
+  walk(a, b, path);
+  return out.join('\n');
+}
+
+/* --------------------------------- saving --------------------------------- */
+
+async function saveCurrent() {
+  if (!editing) return;
+  const f = S.FEATURES.find((x) => x.key === editing);
+  // validate the WHOLE config with the new section swapped in
+  const merged = JSON.parse(JSON.stringify(state.config));
+  merged[editing] = JSON.parse(JSON.stringify(draft));
+  const check = S.validate(merged);
+  if (check.errors.length) {
+    edMsg(`Not saved: ${check.errors[0]}${check.errors.length > 1 ? ` (+${check.errors.length - 1} more)` : ''}`, false);
+    return;
+  }
+  try {
+    edMsg('Committing…', true);
+    const oldSha = state.sha;
+    let sha = oldSha;
+    try {
+      const meta = await getFile('config.json');
+      sha = meta ? meta.sha : null;
+    } catch { /* token may be read-less; fall back to cached sha */ }
+    const text = JSON.stringify(check.config, null, 2);
+    const newSha = await putFile('config.json', text, `dashboard: update ${f.name.toLowerCase()}`, sha || undefined);
+    state.config = check.config;
+    state.sha = newSha || sha;
+    edMsg('Saved — the bot will apply it within ~20 seconds.', true);
+    renderCards();
+  } catch (e) {
+    edMsg(e.message, false);
+  }
+}
+
+function edMsg(text, ok) {
+  const el = $('edMsg');
+  el.textContent = text;
+  el.className = 'msg ' + (ok ? 'ok' : 'err');
+}
+
+/* --------------------------------- wiring --------------------------------- */
+
+$('btnConnect').addEventListener('click', () => void connect());
+$('btnForget').addEventListener('click', () => {
+  localStorage.removeItem(LS_CREDS);
+  state.token = '';
+  $('inToken').value = '';
+  $('inToken').placeholder = 'github_pat_…';
+  setupMsg('Token forgotten from this browser.', true);
+});
+$('edClose').addEventListener('click', closeEditor);
+$('edRevert').addEventListener('click', () => { if (editing) openEditor(editing); });
+$('edSave').addEventListener('click', () => void saveCurrent());
+$('overlay').addEventListener('mousedown', (e) => { if (e.target === $('overlay')) closeEditor(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeEditor(); });
+$('patLink').href = 'https://github.com/settings/personal-access-tokens/new?name=Community%20Bot%20dashboard&description=Edit%20config.json%20from%20the%20dashboard&contents=write';
+
+loadCreds();
+setConn('', 'not connected');
+renderCards();
+void connect(); // auto-reconnect if credentials were stored
