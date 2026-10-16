@@ -1,7 +1,7 @@
 {
   "name": "kevinbevinx-community-bot",
   "version": "1.0.0",
-  "description": "KevinBevinX's Community Bot — tickets, reaction roles, levels, auto-moderation, configured from a GitHub Pages dashboard",
+  "description": "KBX Community Bot — tickets, reaction roles, levels, auto-moderation, configured from a GitHub Pages dashboard",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

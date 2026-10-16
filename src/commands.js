@@ -26,7 +26,7 @@ const COMMANDS = [
     handle: async (interaction) => {
       const cfg = context.currentConfig();
       const embed = theme.embed(interaction.client, {
-        title: "KevinBevinX's Community Bot",
+        title: "KBX Community Bot",
         footer: '/help',
       })
         .setDescription(' Tickets 🎫 · Reaction roles 🔁 · Levels 📶 · Auto-mod 🛡️ · Welcome 👋 · Warnings ⚠️')
@@ -129,17 +129,15 @@ async function register(client) {
   const cfg = context.currentConfig();
   const body = COMMANDS.map((c) => c.data.toJSON());
   try {
-    if (cfg.general.guildId) {
-      const guild = client.guilds.cache.get(cfg.general.guildId);
-      if (guild) {
-        await guild.commands.set(body);
-        log(TAG, `${body.length} guild commands registered to ${guild.name}`);
-        return;
-      }
-      log(TAG, 'configured guild not joined yet (check guildId) — registering globally as fallback');
+    // prefer the configured guild (instant updates), else any guild we're in
+    const target = (cfg.general.guildId && client.guilds.cache.get(cfg.general.guildId)) || client.guilds.cache.first();
+    if (target) {
+      await target.commands.set(body);
+      log(TAG, `${body.length} commands registered to ${target.name}`);
+      return;
     }
     await client.application.commands.set(body);
-    log(TAG, `${body.length} global commands registered (can take up to an hour to appear; guild ones are instant)`);
+    log(TAG, `${body.length} global commands registered (no guild reachable yet — will re-register per-guild once invited)`);
   } catch (e) {
     log(TAG, `⚠ command registration failed: ${e.message}`);
   }

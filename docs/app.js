@@ -1,4 +1,4 @@
-/* Dashboard for KevinBevinX's Community Bot.
+/* Dashboard for KBX Community Bot.
  * Talks straight to the GitHub Contents API from the browser; the bot polls
  * config.json and applies it live. Credentials live in localStorage only.
  * Schema (window.CommunitySchema) is the same file the bot validates with. */
@@ -80,12 +80,12 @@ function discordLook(opts) {
   return `<div class="dc-msg">
     <div class="dc-avatar">🤖</div>
     <div class="dc-body">
-      <div class="dc-name">KevinBevinX's Community Bot</div>
+      <div class="dc-name">KBX Community Bot</div>
       <div class="dc-embed" style="--ec:${color}">
         ${opts.title ? `<div class="dc-title">${mdLite(fillSamples(opts.title))}</div>` : ''}
         ${opts.description ? `<div class="dc-desc">${mdLite(fillSamples(opts.description))}</div>` : ''}
         ${(opts.fields || []).map((f) => `<div class="dc-field"><div class="fname">${esc(f.name)}</div><div class="fval">${mdLite(fillSamples(f.value))}</div></div>`).join('')}
-        <div class="dc-footer">🤖 KevinBevinX's Community Bot${opts.footer ? ` · ${esc(opts.footer)}` : ''} · just now</div>
+        <div class="dc-footer">🤖 KBX Community Bot${opts.footer ? ` · ${esc(opts.footer)}` : ''} · just now</div>
       </div>
     </div>
   </div>`;

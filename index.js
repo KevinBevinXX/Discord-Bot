@@ -1,5 +1,5 @@
 /**
- * KevinBevinX's Community Bot — entrypoint.
+ * KBX Community Bot — entrypoint.
  *
  * Wires: client (intents + partials) → config sync → features → commands.
  * Config comes from the dashboard repo (config.json) and hot-reloads.
@@ -19,7 +19,7 @@ const automod = require('./src/features/automod');
 const welcome = require('./src/features/welcome');
 const { log, err } = require('./src/util');
 
-const BOT_NAME = "KevinBevinX's Community Bot";
+const BOT_NAME = "KBX Community Bot";
 
 if (!process.env.DISCORD_TOKEN) {
   console.error('DISCORD_TOKEN is missing. Copy .env.example to .env and paste the bot token (Discord Developer Portal → Bot → Reset Token).');

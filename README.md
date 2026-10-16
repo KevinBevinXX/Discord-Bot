@@ -1,4 +1,4 @@
-# KevinBevinX's Community Bot
+# KBX Community Bot
 
 Tickets, reaction roles, levels, auto-moderation and welcome messages for the
 Minecraft modding server — **configured entirely from a website that lives in

@@ -6,7 +6,7 @@
  */
 const { EmbedBuilder } = require('discord.js');
 
-const BRAND = "KevinBevinX's Community Bot";
+const BRAND = "KBX Community Bot";
 
 const COLORS = {
   primary: 0x5865f2,   // blurple — tickets panel, rank cards, neutral info

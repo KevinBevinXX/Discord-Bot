@@ -1,6 +1,6 @@
 # community-bot — project conventions
 
-**KevinBevinX's Community Bot** (`community-bot`): a Discord bot for the
+**KBX Community Bot** (`community-bot`): a Discord bot for the
 Minecraft modding server, configured from a GitHub Pages dashboard that
 commits `config.json` to this repo. The bot polls the repo; nothing else is
 required to deploy a settings change.
