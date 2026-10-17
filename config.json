@@ -22,7 +22,7 @@
       {
         "label": "Partnership/Business Inquiry",
         "description": "Apply For Official Partner or Talk about a Inquiry",
-        "emoji": "",
+        "emoji": "🤝",
         "pingRoleIds": [
           "1485352180348354663",
           "1485349782829531166",
@@ -33,7 +33,7 @@
       {
         "label": "Report a staff member",
         "description": "Report a Staff Member for Any reason",
-        "emoji": "",
+        "emoji": "🚨",
         "pingRoleIds": [
           "1485349782829531166",
           "1485352180348354663",
@@ -146,5 +146,5 @@
     "leaveMessage": "{username} left the server. 😔",
     "autoroleIds": []
   },
-  "savedAt": "2026-10-17T22:45:02.741Z"
+  "savedAt": "2026-10-17T22:49:50.403Z"
 }
