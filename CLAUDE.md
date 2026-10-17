@@ -59,3 +59,18 @@ required to deploy a settings change.
   `docs/` — it talks to api.github.com from the browser (CORS is allowed).
 - Never commit `.env`, `data/`, or any token. The dashboard token lives in
   the owner's browser localStorage only.
+
+## Hosting plan (2026-10-17)
+
+The bot runs on Kevin's machine today (`./run.sh`), but the plan is to move it
+to a friend's server — Kevin will add that friend as a repo collaborator and
+their agent handles the hosting side. What any new host needs:
+
+- clone this repo, `cp .env.example .env`, fill `DISCORD_TOKEN` + `GITHUB_REPO`
+  (same repo — the dashboard configures whichever bot polls it)
+- `npm install && ./run.sh` — nothing else is machine-specific
+- **ONE instance per token**: a second running copy of the same token breaks
+  both (Discord logs the older session out). Before the remote host takes
+  over, the local one must be stopped (`./run.sh stop`).
+- `data/` (SQLite + runtime.json) is per-host and gitignored — XP and tickets
+  do NOT migrate automatically.
