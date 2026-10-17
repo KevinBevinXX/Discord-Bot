@@ -7,31 +7,44 @@
   "tickets": {
     "enabled": true,
     "panelChannelId": "1500537842349375649",
-    "panelTitle": "Need help?",
-    "panelText": "Click the button below and pick a reason to open a private ticket with the team.",
+    "panelTitle": "Open A Ticket",
+    "panelText": "Click To Open A Ticket",
     "panelColor": "#5865F2",
     "reasons": [
       {
-        "label": "Modpack / mod issue",
-        "description": "Something is broken with a mod or the modpack",
-        "emoji": "🧩",
-        "pingRoleIds": []
-      },
-      {
-        "label": "Server help",
-        "description": "Cannot join, crashes, lag, whitelist",
-        "emoji": "🖥️",
-        "pingRoleIds": []
-      },
-      {
         "label": "Report a player",
-        "description": "Report rules-breaking behaviour (screenshots help)",
+        "description": "Report rules-breaking behaviour",
         "emoji": "🚩",
-        "pingRoleIds": []
+        "pingRoleIds": [
+          "1500541446544031754"
+        ]
+      },
+      {
+        "label": "Partnership/Business Inquiry",
+        "description": "Apply For Official Partner or Talk about a Inquiry",
+        "emoji": "",
+        "pingRoleIds": [
+          "1485352180348354663",
+          "1485349782829531166",
+          "1485351562187636831",
+          "1485351270310215790"
+        ]
+      },
+      {
+        "label": "Report a staff member",
+        "description": "Report a Staff Member for Any reason",
+        "emoji": "",
+        "pingRoleIds": [
+          "1485349782829531166",
+          "1485352180348354663",
+          "1485351562187636831"
+        ]
       }
     ],
-    "categoryName": "Tickets",
-    "claimRoleIds": [],
+    "categoryName": "🛠️Support",
+    "claimRoleIds": [
+      "1485347272517488761"
+    ],
     "pingRoleIds": [],
     "logChannelId": "1500539880244248787",
     "transcripts": true,
@@ -133,5 +146,5 @@
     "leaveMessage": "{username} left the server. 😔",
     "autoroleIds": []
   },
-  "savedAt": "2026-10-17T22:38:10.487Z"
+  "savedAt": "2026-10-17T22:44:29.578Z"
 }
