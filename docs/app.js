@@ -372,6 +372,13 @@ function buildField(field, value, onChange) {
       }
       return wrap;
     }
+    case 'guild': {
+      const st = state.serverState;
+      const servers = st ? [st] : []; // snapshot is for the one server the bot is in
+      wrap.innerHTML = `<label>${esc(labelText)}<input type="text" list="guildlist" value="${esc(value || '')}" placeholder="${servers.length ? 'pick your server' : 'connect to load the snapshot'}">${hintEl(field.hint)}</label><datalist id="guildlist">${servers.map((g) => `<option value="${esc(g.guildId)}">${esc(g.guildName || 'server')}</option>`).join('')}</datalist>`;
+      wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+      return wrap;
+    }
     case 'category': {
       const cats = (state.serverState && state.serverState.channels || []).filter((c) => c.type === 'category');
       const dlId = 'catlist-' + field.key;

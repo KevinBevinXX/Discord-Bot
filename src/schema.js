@@ -20,7 +20,7 @@
       name: 'General',
       blurb: 'Which server the bot runs in, admin roles, and the default log channel.',
       fields: [
-        { key: 'guildId', label: 'Server ID', type: 'text', hint: 'Right-click your server → Copy Server ID. The bot ignores other servers.' },
+        { key: 'guildId', label: 'Server', type: 'guild', hint: 'Pick from the dropdown (from the bot’s server snapshot). The bot ignores other servers.' },
         { key: 'adminRoleIds', label: 'Admin roles', type: 'roles', hint: 'These roles can use admin commands (config reload, warnings, give XP) and every ticket action.' },
         { key: 'logChannelId', label: 'Log channel', type: 'channel', hint: 'Default channel for bot logs: strikes, ticket transcripts, reaction-role errors.' },
       ],
@@ -321,7 +321,7 @@
       if (field.step) clamped = Math.round(clamped / field.step) * field.step;
       return Math.round(clamped * 10000) / 10000;
     }
-    if (t === 'text' || t === 'textarea' || t === 'emoji' || t === 'color' || t === 'category') {
+    if (t === 'text' || t === 'textarea' || t === 'emoji' || t === 'color' || t === 'category' || t === 'guild') {
       if (typeof v !== 'string') return fail('expected text');
       const s = v.trim();
       if (field.required && !s) return fail('required, cannot be empty');
