@@ -301,6 +301,13 @@ function buildField(field, value, onChange) {
       }
       return wrap;
     }
+    case 'category': {
+      const cats = (state.serverState && state.serverState.channels || []).filter((c) => c.type === 'category');
+      const dlId = 'catlist-' + field.key;
+      wrap.innerHTML = `<label>${esc(labelText)}<input type="text" list="${dlId}" value="${esc(value || '')}" placeholder="pick or type a name">${hintEl(field.hint)}</label><datalist id="${dlId}">${cats.map((c) => `<option value="${esc(c.name)}">`).join('')}</datalist>`;
+      wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));
+      return wrap;
+    }
     case 'select': {
       wrap.innerHTML = `<label>${esc(labelText)}<select>${field.options.map((o) => `<option value="${esc(o.value)}" ${o.value === value ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}</select>${hintEl(field.hint)}</label>`;
       wrap.querySelector('select').addEventListener('change', (e) => onChange(e.target.value));

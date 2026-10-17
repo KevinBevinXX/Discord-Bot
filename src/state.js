@@ -26,7 +26,6 @@ async function collect(config) {
       type: c.type === 0 ? 'text' : c.type === 5 ? 'announcement' : c.type === 15 ? 'forum' : 'category',
       category: c.parentId || '',
     }))
-    .filter((c) => c.type !== 'category')
     .sort((a, b) => (a.category + a.name).localeCompare(b.category + b.name));
 
   const roles = guild.roles.cache
