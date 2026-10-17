@@ -141,10 +141,12 @@
     "enabled": true,
     "welcomeChannelId": "",
     "welcomeMessage": "Welcome {user} to **{server}**! You are member #{memberCount}.",
-    "dmWelcome": "Welcome to **{server}**! Read the rules and say hi 👋",
+    "dmWelcome": "Welcome to **{server}**!  You are the",
     "leaveChannelId": "",
-    "leaveMessage": "{username} left the server. 😔",
-    "autoroleIds": []
+    "leaveMessage": "",
+    "autoroleIds": [
+      "1485349783743893616"
+    ]
   },
-  "savedAt": "2026-10-17T22:50:20.490Z"
+  "savedAt": "2026-10-17T23:01:38.195Z"
 }
