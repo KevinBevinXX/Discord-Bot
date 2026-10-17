@@ -307,7 +307,6 @@ async function handleClaim(interaction) {
     err(TAG, `claim embed update failed: ${e.message}`);
   }
   await interaction.reply({ content: `✅ Claimed — you now own this ticket.`, ephemeral: true }).catch(() => {});
-  logToChannel(cfg, `🙋 ${interaction.user.username} claimed ticket #${row.number}.`);
 }
 
 async function handleCloseButton(interaction) {
@@ -534,15 +533,6 @@ async function sweepAutoClose() {
 }
 
 /* -------------------------------- utilities ------------------------------- */
-
-function logToChannel(cfg, content) {
-  const target = (cfg.tickets.logChannelId || cfg.general.logChannelId);
-  if (!target || !client) return;
-  const guild = client.guilds.cache.get(cfg.general.guildId);
-  if (!guild) return;
-  const ch = guild.channels.cache.get(target);
-  if (ch && ch.isTextBased()) ch.send({ embeds: [theme.embed(client, { color: theme.COLORS.neutral, description: content, footer: 'Tickets' })] }).catch(() => {});
-}
 
 function replyOnce(interaction, content) {
   const fn = interaction.deferred || interaction.replied ? interaction.followUp : interaction.reply;
