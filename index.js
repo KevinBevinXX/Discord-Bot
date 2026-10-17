@@ -57,6 +57,8 @@ configModule.onConfigApplied(async (cfg, { first, source }) => {
 
 client.once(Events.ClientReady, async (c) => {
   log('boot', `${BOT_NAME} online as ${c.user.tag} — ${c.guilds.cache.size} guild(s)`);
+  await tickets.register(c);        // wires ticket buttons/modals + gives apply() its client
+  await reactionRoles.register(c);  // wires reaction + button/dropdown role handlers
   await commands.register(c);
   const cfg = configModule.get();
   context.setConfig(cfg);

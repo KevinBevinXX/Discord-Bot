@@ -36,6 +36,7 @@ let timer = null;
 let lastAppliedJson = '';
 let lastStateJson = '';
 let ghApiOk = true;
+let lastPollErrorLog = 0;
 
 function apiHeaders() {
   const h = {
@@ -51,8 +52,10 @@ function ghUrl(file) {
   return `https://api.github.com/repos/${REPO}/contents/${file}?ref=${encodeURIComponent(BRANCH)}`;
 }
 
+const FETCH_TIMEOUT_MS = 15000;
+
 async function ghGet(file) {
-  const res = await fetch(ghUrl(file), { headers: apiHeaders() });
+  const res = await fetch(ghUrl(file), { headers: apiHeaders(), signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (res.status === 404) return null;
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -76,6 +79,7 @@ async function ghPut(file, text, message) {
   }
   const res = await fetch(ghUrl(file).replace(/\?ref=.*$/, ''), {
     method: 'PUT',
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     headers: { ...headers, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message,
@@ -136,7 +140,9 @@ async function pollOnce() {
       log('config', `${REPO}/${FILE} does not exist yet — using defaults. Create it from the dashboard.`);
     }
   } catch (e) {
-    if (ghApiOk) log('config', `poll failed: ${e.message}`);
+    const now = Date.now();
+    if (ghApiOk || now - lastPollErrorLog > 5 * 60 * 1000) log('config', `poll failed: ${e.message}`);
+    lastPollErrorLog = now;
     ghApiOk = false;
   }
 
