@@ -33,3 +33,31 @@ test('exactly one message attaches it', () => {
   assert.equal((src.match(/setCustomId\(IDs\.claim\)/g) || []).length, 1,
     'the Claim button should only be built inside controlsRow()');
 });
+
+/**
+ * There is no transcript file any more, so the "View transcript" button has to
+ * carry the whole thing across follow-up messages without cutting a line in
+ * half or exceeding Discord's 2000-character message limit.
+ */
+test('chunkText splits on line boundaries, under the message limit', () => {
+  const text = Array.from({ length: 200 }, (_, i) => `[2026-10-15 17:04] user: message number ${i}`).join('\n');
+  const chunks = tickets.chunkText(text);
+  assert.ok(chunks.length > 1, 'a long transcript needs several messages');
+  for (const c of chunks) assert.ok(c.length <= 2000, `chunk of ${c.length} exceeds the limit`);
+  assert.ok(!chunks.some((c) => /message number \d+[^\n\d]*$/.test(c) === false && c.endsWith('messag')), 'no mid-line cut');
+  // every line survives somewhere, in order
+  const rejoined = chunks.join('\n');
+  assert.ok(rejoined.includes('message number 0'));
+  assert.ok(rejoined.includes('message number 199'), 'nothing is dropped at this size');
+});
+
+test('chunkText gives up cleanly on an enormous transcript', () => {
+  const huge = Array.from({ length: 5000 }, (_, i) => `line ${i} ${'x'.repeat(60)}`).join('\n');
+  const chunks = tickets.chunkText(huge);
+  assert.equal(chunks.length, 6, 'capped at maxChunks');
+  assert.match(chunks[chunks.length - 1], /transcript truncated/);
+});
+
+test('chunkText never returns nothing', () => {
+  assert.deepEqual(tickets.chunkText(''), ['(empty transcript)']);
+});

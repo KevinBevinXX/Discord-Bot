@@ -16,7 +16,6 @@ const {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
-  AttachmentBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -27,7 +26,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const context = require('../context');
 const runtime = require('../runtime');
-const { buildTranscriptHtml, buildTranscriptText } = require('../transcript');
+const { buildTranscriptText } = require('../transcript');
 const { fill, hasAnyRole, isAdmin, log, err, displayEmoji, parseEmoji } = require('../util');
 const theme = require('../theme');
 
@@ -357,21 +356,44 @@ function closerName(userId, messages) {
   return m && m.author ? m.author.username : userId;
 }
 
+/**
+ * Split on line boundaries so no message cuts mid-line. There is no file to
+ * fall back on any more, so this carries the whole transcript across follow-up
+ * messages, and only gives up after maxChunks.
+ */
+function chunkText(text, size = 1900, maxChunks = 6) {
+  const out = [];
+  let buf = '';
+  let truncated = false;
+  for (const raw of String(text || '').split('\n')) {
+    const line = raw.length > size ? `${raw.slice(0, size - 1)}…` : raw;
+    if (buf && buf.length + 1 + line.length > size) {
+      out.push(buf);
+      buf = '';
+      if (out.length === maxChunks) { truncated = true; break; }
+    }
+    buf = buf ? `${buf}\n${line}` : line;
+  }
+  if (!truncated && buf) out.push(buf);
+  if (truncated) out[out.length - 1] += '\n…(transcript truncated)';
+  if (!out.length) out.push('(empty transcript)');
+  return out;
+}
+
 async function handleTranscript(interaction) {
   const number = parseInt(interaction.customId.split(':')[2], 10);
   const row = Number.isFinite(number) ? db.ticketByNumber(interaction.guildId, number) : null;
   if (!row || !row.transcriptText) {
-    return void replyOnce(interaction, 'No stored transcript for that ticket — the attached file has the full log.');
-  }
-  const LIMIT = 1900;
-  let body = row.transcriptText;
-  if (body.length > LIMIT) {
-    const cut = body.slice(0, LIMIT);
-    body = `${cut.slice(0, cut.lastIndexOf('\n') + 1)}…\n(too long for one message — the attached file has the rest)`;
+    return void replyOnce(interaction, 'No transcript stored for that ticket (it was closed before transcripts were kept).');
   }
   // parse: [] so quoting someone's message cannot ping them all over again
-  await interaction.reply({ content: body, ephemeral: true, allowedMentions: { parse: [] } })
+  const chunks = chunkText(row.transcriptText);
+  const opts = { ephemeral: true, allowedMentions: { parse: [] } };
+  await interaction.reply({ content: chunks[0], ...opts })
     .catch((e) => err(TAG, `transcript reply failed: ${e.message}`));
+  for (const chunk of chunks.slice(1)) {
+    await interaction.followUp({ content: chunk, ...opts }).catch(() => {});
+  }
 }
 
 /* --------------------------------- closing -------------------------------- */
@@ -388,16 +410,6 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
   if (t.transcripts) {
     try {
       const messages = await fetchAllMessages(channel, 500);
-      const html = buildTranscriptHtml({
-        guild: guild.name,
-        channel: channel.name,
-        ticketNumber: row.number,
-        reason: row.reason,
-        openedBy: row.userId,
-        closedBy: closer.user ? closer.user.username : 'system',
-        closeReason: reasonText,
-        messages,
-      });
       db.updateTicket(guild.id, channel.id, {
         transcript_text: buildTranscriptText({
           guild: guild.name,
@@ -412,7 +424,6 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
 
       const target = await resolveChannel(client, guild.id, t.logChannelId || cfg.general.logChannelId);
       if (target) {
-        const buf = Buffer.from(html, 'utf8');
         const logEmbed = theme.embed(context.getClient(), {
           color: theme.COLORS.success,
           title: 'Ticket Closed',
@@ -427,16 +438,11 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
           ],
           footer: 'Tickets',
         });
-        // The .html goes up SPOILERED — discord.js prefixes the name with
-        // SPOILER_ (AttachmentBuilder#setSpoiler), so Discord hides the preview
-        // behind one click instead of unrolling the markup in the log channel.
-        // The button renders the same conversation as plain lines.
-        const file = new AttachmentBuilder(buf, {
-          name: `ticket-${String(row.number).padStart(4, '0')}-transcript.html`,
-        }).setSpoiler(true);
+        // No file: spoilering it did not stop Discord unrolling the markup,
+        // it only put SPOILER_ in the name. The transcript lives behind the
+        // button, as plain lines.
         const sent = await target.send({
           embeds: [logEmbed],
-          files: [file],
           components: [new ActionRowBuilder().addComponents(
             new ButtonBuilder()
               .setCustomId(`${IDs.transcript}:${row.number}`)
@@ -479,7 +485,6 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
   // closed tickets are always removed — the transcript (log channel + DM) is the record
   log(TAG, `ticket #${row.number} deleting channel in 10s`);
   setTimeout(() => channel.delete(`ticket #${row.number} closed`).catch(() => {}), 10_000);
-  logToChannel(cfg, `🔒 Ticket #${row.number} closed by ${closer.user ? closer.user.username : closer.id}` + (reasonText ? ` — “${reasonText.slice(0, 200)}”` : ''));
   return true;
 }
 
@@ -544,4 +549,4 @@ function replyOnce(interaction, content) {
   return fn.call(interaction, { content, ephemeral: true }).catch(() => {});
 }
 
-module.exports = { register, apply, closeTicket, controlsRow, IDs };
+module.exports = { register, apply, closeTicket, controlsRow, chunkText, IDs };

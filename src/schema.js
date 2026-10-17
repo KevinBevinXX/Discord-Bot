@@ -50,7 +50,7 @@
         { key: 'claimRoleIds', label: 'Roles that can claim/close', type: 'roles', def: [], hint: '“Claim” shows for these roles (and admins).' },
         { key: 'pingRoleIds', label: 'Roles pinged in every ticket', type: 'roles', def: [] },
         { key: 'logChannelId', label: 'Transcript log channel', type: 'channel' },
-        { key: 'transcripts', label: 'Save HTML transcripts on close', type: 'bool', def: true },
+        { key: 'transcripts', label: 'Keep a transcript when a ticket closes', type: 'bool', def: true, hint: 'Staff read it with the “View transcript” button on the closed-ticket log.' },
         { key: 'dmUserOnClose', label: 'DM the opener a transcript link', type: 'bool', def: true },
         { key: 'maxOpenPerUser', label: 'Max open tickets per user', type: 'number', def: 1, min: 1, max: 10 },
         { key: 'autoCloseHours', label: 'Auto-close after hours of silence', type: 'number', def: 0, min: 0, max: 720, hint: '0 = never.' },
