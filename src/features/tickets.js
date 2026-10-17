@@ -36,7 +36,6 @@ const IDs = {
   claim: 'ticket:claim',
   close: 'ticket:close', // button
   closeModal: 'ticket:closeModal', // modal submit
-  reopen: 'ticket:reopen',
   delete: 'ticket:delete',
 };
 
@@ -120,7 +119,6 @@ async function register(client_) {
     else if (i.isButton() && i.customId === IDs.claim) void handleClaim(i);
     else if (i.isButton() && i.customId === IDs.close) void handleCloseButton(i);
     else if (i.isModalSubmit() && i.customId === IDs.closeModal) void handleCloseModal(i);
-    else if (i.isButton() && i.customId === IDs.reopen) void handleReopen(i);
     else if (i.isButton() && i.customId === IDs.delete) void handleDelete(i);
   });
   autoCloseTimer = setInterval(() => void sweepAutoClose(), AUTO_CLOSE_TICK_MS);
@@ -327,29 +325,6 @@ async function handleCloseModal(interaction) {
   await interaction.editReply('Ticket closed.').catch(() => {});
 }
 
-async function handleReopen(interaction) {
-  const cfg = require('../context').currentConfig();
-  const row = ticketOf(interaction);
-  if (!row) return void replyOnce(interaction, 'This channel is not a ticket.');
-  if (row.status !== 'closed') return void replyOnce(interaction, 'This ticket is not closed.');
-  if (!isStaff(interaction.member, cfg)) return void replyOnce(interaction, 'Only staff can reopen tickets.');
-
-  db.updateTicket(interaction.guildId, interaction.channelId, { status: 'open', closed_at: 0, close_reason: '' });
-  const t = cfg.tickets;
-  const parent = t.categoryName ? interaction.guild.channels.cache.find((c) => c.type === ChannelType.GuildCategory && c.name === t.categoryName) : null;
-  const newName = interaction.channel.name.replace(/-closed$/, '');
-  await interaction.channel.edit({ name: newName, parent: parent ? parent.id : undefined }).catch((e) => err(TAG, `reopen edit failed: ${e.message}`));
-  try {
-    const msg = await interaction.channel.messages.fetch(row.initMessageId);
-    await msg.edit({ components: [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(IDs.claim).setLabel('Claim').setStyle(ButtonStyle.Success).setDisabled(row.claimedBy !== ''),
-      new ButtonBuilder().setCustomId(IDs.close).setLabel('Close').setStyle(ButtonStyle.Danger),
-    )] });
-  } catch { /* init message may be gone */ }
-  await interaction.reply({ content: '🔄 Ticket reopened.', ephemeral: true }).catch(() => {});
-  logToChannel(cfg, `🔄 ${interaction.user.username} reopened ticket #${row.number}.`);
-}
-
 async function handleDelete(interaction) {
   const cfg = require('../context').currentConfig();
   const row = ticketOf(interaction);
@@ -429,26 +404,12 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
         { name: 'Closed by', value: `<@${closer.id}>`, inline: true },
         { name: 'Close reason', value: reasonText ? reasonText.slice(0, 1000) : '—', inline: false },
       );
-    await msg.edit({
-      embeds: [embed],
-      components: [new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(IDs.reopen).setLabel('Reopen').setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder().setCustomId(IDs.delete).setLabel('Delete channel').setStyle(ButtonStyle.Danger),
-      )],
-    });
+    await msg.edit({ embeds: [embed], components: [] });
   } catch { /* init message may be gone */ }
 
-  // archive or delete
-  const closedCat = (t.closedCategoryName || '').trim();
-  if (closedCat) {
-    await channel.setName(`${channel.name}-closed`.slice(0, 100)).catch(() => {});
-    const cat = await ensureCategory(guild, closedCat);
-    if (cat) await channel.setParent(cat.id, { lockPermissions: false }).catch((e) => err(TAG, `archive move failed: ${e.message}`));
-    log(TAG, `ticket #${row.number} archived to ${closedCat}`);
-  } else {
-    log(TAG, `ticket #${row.number} deleting channel in 10s`);
-    setTimeout(() => channel.delete(`ticket #${row.number} closed`).catch(() => {}), 10_000);
-  }
+  // closed tickets are always removed — the transcript (log channel + DM) is the record
+  log(TAG, `ticket #${row.number} deleting channel in 10s`);
+  setTimeout(() => channel.delete(`ticket #${row.number} closed`).catch(() => {}), 10_000);
   logToChannel(cfg, `🔒 Ticket #${row.number} closed by ${closer.user ? closer.user.username : closer.id}` + (reasonText ? ` — “${reasonText.slice(0, 200)}”` : ''));
   return true;
 }

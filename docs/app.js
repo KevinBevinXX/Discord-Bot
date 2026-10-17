@@ -234,6 +234,50 @@ function renderCards() {
   document.querySelectorAll('.feat').forEach((el) => el.addEventListener('click', () => openEditor(el.dataset.feat)));
 }
 
+/* ------------------------------ emoji picker ------------------------------ */
+
+const EMOJI_GROUPS = [
+  ['Popular', '🎮 🎲 🧩 🛠️ ⚙️ 🚩 ❓ ✅ ❌ ⚠️ 🔥 ⭐ 💤 💥 🏆 🎉 👑 💎 🧱 ⛏️ 🗡️ 🛡️ 🧪 🍎 ❤️ 💀 👻 🤖 🐺 🐉 🌟'],
+  ['Faces', '😀 😆 😎 🤔 😴 😇 🥳 😡 🤖 👻 👀 🙃 😭 😤 🤯 🥶 😱 🤠'],
+  ['Objects', '💻 📱 🎧 🎤 📷 📦 📌 🔑 🔒 💡 🔔 📢 🧭 ⏰ 🔫 🏹 🪓 🔮 🧿 🎁'],
+  ['Nature', '🌿 🌳 🍄 ⚡ 🌙 ☀️ 🌊 ❄️ 🌋 🪨 🌵 🍀 🌹 🌻 🦴 🕷️ 🐛 🦇'],
+  ['People', '👤 👥 🧍 🙋 🛡️soldier 👮 🕵️ 🧙 🦸 🥷 👮‍♂️'],
+  ['Symbols', '💯 ❗ ⁉️ ♻️ ➕ ➖ 🆗 🔰 ⚜️ ☮️ 🔱 ⚡ ☢️ 🚫 🔴 🟢 🟡 🔵'],
+];
+
+let emojiPop = null;
+
+function openEmojiPicker(anchor, input, onChange) {
+  if (emojiPop) { emojiPop.remove(); emojiPop = null; }
+  emojiPop = document.createElement('div');
+  emojiPop.className = 'emoji-pop';
+  emojiPop.innerHTML = EMOJI_GROUPS.map(([name, list]) =>
+    `<div class="emo-cat">${esc(name)}</div><div class="emo-grid">${list.split(/\s+/).filter((e) => !/[a-z]/i.test(e)).map((e) => `<button type="button" class="emo" data-e="${e}">${e}</button>`).join('')}</div>`,
+  ).join('') + '<div class="emo-x">✕ close</div>';
+  document.body.appendChild(emojiPop);
+  const r = anchor.getBoundingClientRect();
+  const pw = 300, ph = Math.min(340, window.innerHeight - 60);
+  emojiPop.style.left = Math.min(r.left, window.innerWidth - pw - 10) + 'px';
+  emojiPop.style.top = Math.min(r.bottom + 6, window.innerHeight - ph - 10) + 'px';
+  emojiPop.querySelectorAll('.emo').forEach((b) => b.addEventListener('click', () => {
+    input.value = b.dataset.e;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    closeEmojiPicker();
+    input.focus();
+  }));
+  emojiPop.querySelector('.emo-x').addEventListener('click', closeEmojiPicker);
+  setTimeout(() => document.addEventListener('mousedown', emojiOutside), 0);
+}
+
+function emojiOutside(e) {
+  if (emojiPop && !emojiPop.contains(e.target) && !e.target.classList.contains('emoji-btn')) closeEmojiPicker();
+}
+
+function closeEmojiPicker() {
+  if (emojiPop) { emojiPop.remove(); emojiPop = null; }
+  document.removeEventListener('mousedown', emojiOutside);
+}
+
 /* ------------------------------ form building ----------------------------- */
 
 function hintEl(hint) {
@@ -269,8 +313,14 @@ function buildField(field, value, onChange) {
       wrap.querySelector('input').addEventListener('input', (e) => onChange(parseFloat(e.target.value)));
       return wrap;
     }
+    case 'emoji': {
+      wrap.innerHTML = `<label>${esc(labelText)}<span class="emocell"><input type="text" class="emoji-input" value="${esc(value || '')}" placeholder="🎮"><button type="button" class="btn small emoji-btn" title="Pick an emoji">😀</button></span>${hintEl(field.hint)}</label>`;
+      const ein = wrap.querySelector('input');
+      ein.addEventListener('input', (e) => onChange(e.target.value));
+      wrap.querySelector('.emoji-btn').addEventListener('click', (e) => openEmojiPicker(e.currentTarget, ein, onChange));
+      return wrap;
+    }
     case 'text':
-    case 'emoji':
     case 'color': {
       wrap.innerHTML = `<label>${esc(labelText)}<input type="text" value="${esc(value || '')}" maxlen="${field.max || 200}">${hintEl(field.hint)}</label>`;
       wrap.querySelector('input').addEventListener('input', (e) => onChange(e.target.value));

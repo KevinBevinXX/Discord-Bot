@@ -135,3 +135,14 @@ label .hint { display: block; font-size: 11.5px; color: var(--faint); margin-top
 ol.steps { margin: 8px 0 0 18px; color: var(--text); font-size: 13.5px; }
 ol.steps li { margin-bottom: 6px; }
 @media (max-width: 640px) { .grid-2 { grid-template-columns: 1fr; } }
+
+/* emoji picker */
+.emocell { display: flex; gap: 6px; margin-top: 4px; }
+.emocell input { margin-top: 0; flex: 1; font-size: 16px; }
+.emoji-btn { flex: none; font-size: 15px; }
+.emoji-pop { position: fixed; z-index: 60; width: 300px; max-height: 340px; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.emo-cat { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .07em; margin: 6px 0 4px; }
+.emo-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.emo { background: none; border: 0; font-size: 17px; padding: 3px 0; border-radius: 6px; cursor: pointer; }
+.emo:hover { background: var(--panel3); }
+.emo-x { color: var(--muted); font-size: 11.5px; text-align: center; cursor: pointer; padding-top: 8px; }

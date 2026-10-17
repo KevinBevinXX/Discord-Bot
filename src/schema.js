@@ -47,7 +47,6 @@
           { key: 'pingRoleIds', label: 'Roles pinged in this ticket type', type: 'roles' },
         ] },
         { key: 'categoryName', label: 'Open tickets category', type: 'category', def: 'Tickets', hint: 'Existing name from the dropdown, or type a new one — the bot creates it if missing.' },
-        { key: 'closedCategoryName', label: 'Closed tickets category', type: 'category', def: 'Tickets — closed', hint: 'Closed tickets are moved here. Empty = delete tickets on close instead.' },
         { key: 'claimRoleIds', label: 'Roles that can claim/close', type: 'roles', def: [], hint: '“Claim” shows for these roles (and admins).' },
         { key: 'pingRoleIds', label: 'Roles pinged in every ticket', type: 'roles', def: [] },
         { key: 'logChannelId', label: 'Transcript log channel', type: 'channel' },

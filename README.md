@@ -26,9 +26,8 @@ picks a **reason from the list you defined on the site**; a private
 `ticket-0001` channel appears under a `Tickets` category with all the right
 permission overwrites. Staff (`claimRoleIds`) get **Claim**; opener or staff
 **Close** — closing always opens a modal asking *why* (optional) — then the
-bot posts an HTML transcript to the log channel, DMs the opener, and either
-archives the channel to a `Tickets — closed` category (with **Reopen** /
-**Delete** buttons) or deletes it. Limits per user, optional auto-close after
+bot posts an HTML transcript to the log channel, DMs the opener, and deletes
+the channel. Limits per user, optional auto-close after
 hours of silence, per-reason role pings.
 
 **Reaction roles** — panels: channel + emoji→role pairs. The bot posts its own
