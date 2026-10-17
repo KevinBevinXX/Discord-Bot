@@ -8,7 +8,7 @@
     "enabled": true,
     "panelChannelId": "1500537842349375649",
     "panelTitle": "Open A Ticket",
-    "panelText": "Click To Open A Ticket",
+    "panelText": "",
     "panelColor": "#5865F2",
     "reasons": [
       {
@@ -146,5 +146,5 @@
     "leaveMessage": "{username} left the server. 😔",
     "autoroleIds": []
   },
-  "savedAt": "2026-10-17T22:44:29.578Z"
+  "savedAt": "2026-10-17T22:45:02.741Z"
 }
