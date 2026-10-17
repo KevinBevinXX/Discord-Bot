@@ -52,6 +52,13 @@ function init() {
     );
     CREATE INDEX IF NOT EXISTS tickets_guild_status ON tickets (guild_id, status);
   `);
+  // added after the table shipped: the plain-text transcript the "View
+  // transcript" button replies with (the ticket channel is gone by then)
+  const cols = db.prepare('PRAGMA table_info(tickets)').all().map((c) => c.name);
+  if (!cols.includes('transcript_text')) {
+    db.exec("ALTER TABLE tickets ADD COLUMN transcript_text TEXT NOT NULL DEFAULT ''");
+    log('db', 'migrated: tickets.transcript_text');
+  }
   log('db', `ready at ${DB_PATH}`);
 }
 
@@ -149,7 +156,7 @@ function ticketByInitMessage(guildId, messageId) {
 }
 
 function updateTicket(guildId, channelId, fields) {
-  const allowed = ['claimed_by', 'status', 'close_reason', 'closed_at', 'init_message_id'];
+  const allowed = ['claimed_by', 'status', 'close_reason', 'closed_at', 'init_message_id', 'transcript_text'];
   const sets = [];
   const vals = [];
   for (const k of allowed) {
@@ -161,6 +168,12 @@ function updateTicket(guildId, channelId, fields) {
   if (!sets.length) return;
   vals.push(guildId, channelId);
   db.prepare(`UPDATE tickets SET ${sets.join(', ')} WHERE guild_id=? AND channel_id=?`).run(...vals);
+}
+
+/** Closed tickets have no channel left, so the button looks them up by number. */
+function ticketByNumber(guildId, number) {
+  const r = db.prepare('SELECT * FROM tickets WHERE guild_id=? AND number=?').get(guildId, number);
+  return r ? ticketRow(r) : null;
 }
 
 function openTickets(guildId) {
@@ -180,6 +193,7 @@ function ticketRow(r) {
     initMessageId: r.init_message_id || '',
     createdAt: Number(r.created_at),
     closedAt: Number(r.closed_at || 0),
+    transcriptText: r.transcript_text || '',
   };
 }
 
@@ -187,6 +201,7 @@ module.exports = {
   init,
   getXp, applyXpGain, leaderboard, leaderboardRank, totalTracked, resetXp,
   addStrike, strikeCount, strikesFor, clearStrikes,
-  nextTicketNumber, createTicketRow, ticketByChannel, ticketByInitMessage,
+  nextTicketNumber, createTicketRow, ticketByChannel,
+  ticketByNumber, ticketByInitMessage,
   openTicketCount, updateTicket, openTickets,
 };

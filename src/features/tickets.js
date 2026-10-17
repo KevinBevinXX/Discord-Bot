@@ -16,6 +16,7 @@ const {
   ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  AttachmentBuilder,
   ModalBuilder,
   TextInputBuilder,
   TextInputStyle,
@@ -26,7 +27,7 @@ const crypto = require('crypto');
 const db = require('../db');
 const context = require('../context');
 const runtime = require('../runtime');
-const { buildTranscriptHtml } = require('../transcript');
+const { buildTranscriptHtml, buildTranscriptText } = require('../transcript');
 const { fill, hasAnyRole, isAdmin, log, err, displayEmoji, parseEmoji } = require('../util');
 const theme = require('../theme');
 
@@ -38,6 +39,7 @@ const IDs = {
   close: 'ticket:close', // button
   closeModal: 'ticket:closeModal', // modal submit
   delete: 'ticket:delete',
+  transcript: 'ticket:transcript', // + ':<ticket number>'
 };
 
 let client = null;
@@ -115,6 +117,19 @@ function panelPayload(t) {
   };
 }
 
+/**
+ * The Claim/Close row. Exactly ONE message per ticket may carry it: the init
+ * embed, which is the message every handler edits (db `init_message_id`) — so
+ * a second copy also went stale on claim. Two copies is what showed up as
+ * "2 claim and close buttons".
+ */
+function controlsRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(IDs.claim).setLabel('Claim').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(IDs.close).setLabel('Close').setStyle(ButtonStyle.Danger),
+  );
+}
+
 function isStaff(member, cfg) {
   if (!member) return false;
   if (member.permissions && member.permissions.has(PermissionFlagsBits.ManageGuild)) return true;
@@ -130,6 +145,7 @@ async function register(client_) {
     else if (i.isButton() && i.customId === IDs.close) void handleCloseButton(i);
     else if (i.isModalSubmit() && i.customId === IDs.closeModal) void handleCloseModal(i);
     else if (i.isButton() && i.customId === IDs.delete) void handleDelete(i);
+    else if (i.isButton() && i.customId.startsWith(`${IDs.transcript}:`)) void handleTranscript(i);
   });
   autoCloseTimer = setInterval(() => void sweepAutoClose(), AUTO_CLOSE_TICK_MS);
   autoCloseTimer.unref();
@@ -191,13 +207,10 @@ async function handleReasonSelect(interaction) {
     const channel = await createTicketChannel(interaction.guild, interaction.member, reason, pingIds, cfg);
     await interaction.editReply(`Ticket opened: ${channel}`).catch(() => {});
     const mentions = [`${interaction.user}`, ...pingIds.map((id) => `<@&${id}>`)].join(' ');
-    await channel.send({
-      content: `${mentions}`.slice(0, 1800),
-      components: [new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId(IDs.claim).setLabel('Claim').setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId(IDs.close).setLabel('Close').setStyle(ButtonStyle.Danger),
-      )],
-    });
+    // Pings have to sit in message CONTENT — a mention inside an embed
+    // notifies nobody, which is the only reason this second message exists.
+    // It carries no buttons: the init embed owns the Claim/Close row.
+    await channel.send({ content: `${mentions}`.slice(0, 1800) });
   } catch (e) {
     err(TAG, `creating ticket failed: ${e.message}`);
     await interaction.editReply(`I could not create the ticket — check my permissions in that category. (${e.message.slice(0, 150)})`).catch(() => {});
@@ -267,13 +280,7 @@ async function createTicketChannel(guild, opener, reason, pingIds, cfg) {
   });
   embed.setColor(theme.COLORS.success);
 
-  const initMsg = await channel.send({
-    embeds: [embed],
-    components: [new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(IDs.claim).setLabel('Claim').setStyle(ButtonStyle.Success),
-      new ButtonBuilder().setCustomId(IDs.close).setLabel('Close').setStyle(ButtonStyle.Danger),
-    )],
-  });
+  const initMsg = await channel.send({ embeds: [embed], components: [controlsRow()] });
   db.updateTicket(cfg.general.guildId, channel.id, { init_message_id: initMsg.id });
   return channel;
 }
@@ -344,6 +351,29 @@ async function handleDelete(interaction) {
   setTimeout(() => interaction.channel.delete(`ticket #${row.number} deleted by ${interaction.user.username}`).catch((e) => err(TAG, `delete failed: ${e.message}`)), 500);
 }
 
+/** Best-effort username for the opener, from the messages we already have. */
+function closerName(userId, messages) {
+  const m = (messages || []).find((x) => x.author && x.author.id === userId);
+  return m && m.author ? m.author.username : userId;
+}
+
+async function handleTranscript(interaction) {
+  const number = parseInt(interaction.customId.split(':')[2], 10);
+  const row = Number.isFinite(number) ? db.ticketByNumber(interaction.guildId, number) : null;
+  if (!row || !row.transcriptText) {
+    return void replyOnce(interaction, 'No stored transcript for that ticket — the attached file has the full log.');
+  }
+  const LIMIT = 1900;
+  let body = row.transcriptText;
+  if (body.length > LIMIT) {
+    const cut = body.slice(0, LIMIT);
+    body = `${cut.slice(0, cut.lastIndexOf('\n') + 1)}…\n(too long for one message — the attached file has the rest)`;
+  }
+  // parse: [] so quoting someone's message cannot ping them all over again
+  await interaction.reply({ content: body, ephemeral: true, allowedMentions: { parse: [] } })
+    .catch((e) => err(TAG, `transcript reply failed: ${e.message}`));
+}
+
 /* --------------------------------- closing -------------------------------- */
 
 async function closeTicket(guild, channel, closer, reasonText, cfg) {
@@ -368,23 +398,52 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
         closeReason: reasonText,
         messages,
       });
+      db.updateTicket(guild.id, channel.id, {
+        transcript_text: buildTranscriptText({
+          guild: guild.name,
+          ticketNumber: row.number,
+          reason: row.reason,
+          openedBy: closerName(row.userId, messages),
+          closedBy: closer.user ? closer.user.username : 'system',
+          closeReason: reasonText,
+          messages,
+        }).slice(0, 200000),
+      });
+
       const target = await resolveChannel(client, guild.id, t.logChannelId || cfg.general.logChannelId);
       if (target) {
         const buf = Buffer.from(html, 'utf8');
         const logEmbed = theme.embed(context.getClient(), {
-          color: theme.COLORS.neutral,
-          title: `📄 Transcript — Ticket #${row.number}`,
+          color: theme.COLORS.success,
+          title: 'Ticket Closed',
           fields: [
-            { name: 'Reason', value: row.reason || '—', inline: true },
-            { name: 'Opened by', value: `<@${row.userId}>`, inline: true },
-            { name: 'Closed by', value: `<@${closer.id}>`, inline: true },
-            { name: 'Close reason', value: reasonText || '—', inline: false },
+            { name: '🎟️ Ticket ID', value: `${row.number}`, inline: true },
+            { name: '🟢 Opened By', value: `<@${row.userId}>`, inline: true },
+            { name: '🔴 Closed By', value: `<@${closer.id}>`, inline: true },
+            { name: '🕐 Open Time', value: `<t:${row.createdAt}:f>`, inline: true },
+            { name: '🙋 Claimed By', value: row.claimedBy ? `<@${row.claimedBy}>` : 'Not claimed', inline: true },
+            { name: '❓ Reason', value: (row.reason || 'No reason specified').slice(0, 1024), inline: true },
+            ...(reasonText ? [{ name: '📝 Close reason', value: reasonText.slice(0, 1024), inline: false }] : []),
           ],
           footer: 'Tickets',
         });
+        // The .html goes up SPOILERED — discord.js prefixes the name with
+        // SPOILER_ (AttachmentBuilder#setSpoiler), so Discord hides the preview
+        // behind one click instead of unrolling the markup in the log channel.
+        // The button renders the same conversation as plain lines.
+        const file = new AttachmentBuilder(buf, {
+          name: `ticket-${String(row.number).padStart(4, '0')}-transcript.html`,
+        }).setSpoiler(true);
         const sent = await target.send({
           embeds: [logEmbed],
-          files: [{ attachment: buf, name: `ticket-${String(row.number).padStart(4, '0')}-transcript.html` }],
+          files: [file],
+          components: [new ActionRowBuilder().addComponents(
+            new ButtonBuilder()
+              .setCustomId(`${IDs.transcript}:${row.number}`)
+              .setLabel('View transcript')
+              .setEmoji('📄')
+              .setStyle(ButtonStyle.Secondary),
+          )],
         }).catch((e) => { err(TAG, `transcript send failed: ${e.message}`); return null; });
         if (sent) transcriptUrlNote = sent.url;
       }
@@ -485,4 +544,4 @@ function replyOnce(interaction, content) {
   return fn.call(interaction, { content, ephemeral: true }).catch(() => {});
 }
 
-module.exports = { register, apply, closeTicket, IDs };
+module.exports = { register, apply, closeTicket, controlsRow, IDs };

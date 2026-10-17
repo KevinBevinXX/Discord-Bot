@@ -74,4 +74,28 @@ ${(messages || []).map(renderMessage).join('\n')}
 </html>`;
 }
 
-module.exports = { buildTranscriptHtml, esc };
+/**
+ * The same transcript as plain readable lines, for the "View transcript"
+ * button. Deliberately NOT code-formatted: this is read in a Discord reply,
+ * where a wall of markup helps nobody.
+ */
+function buildTranscriptText({ guild, ticketNumber, reason, openedBy, closedBy, closeReason, messages }) {
+  const head = [
+    `Ticket #${ticketNumber}${reason ? ` — ${reason}` : ''}${guild ? ` · ${guild}` : ''}`,
+    `Opened by ${openedBy || 'unknown'} · closed by ${closedBy || 'system'}`,
+    `Close reason: ${closeReason || 'No reason specified'}`,
+    '',
+  ];
+  const body = (messages || []).map((m) => {
+    const when = new Date(m.createdTimestamp).toISOString().replace('T', ' ').slice(0, 16);
+    const who = `${m.author ? m.author.username : 'unknown'}${m.author && m.author.bot ? ' (bot)' : ''}`;
+    const files = m.attachments && m.attachments.size
+      ? ` [${[...m.attachments.values()].map((a) => a.name).join(', ')}]`
+      : '';
+    const text = (m.content || '').trim();
+    return `[${when}] ${who}: ${text || '(no text)'}${files}`;
+  });
+  return head.concat(body).join('\n');
+}
+
+module.exports = { buildTranscriptHtml, buildTranscriptText, esc };
