@@ -76,6 +76,7 @@ label .hint { display: block; font-size: 11.5px; color: var(--faint); margin-top
 
 /* editor overlay */
 .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.62); backdrop-filter: blur(2px); z-index: 20; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 30px 14px; }
+.overlay[hidden] { display: none; } /* the hidden attribute must beat display:flex above */
 .editor { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; width: 860px; max-width: 100%; animation: rise .18s ease both; }
 .editor-head { display: flex; gap: 12px; align-items: flex-start; padding: 16px 20px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); border-radius: 14px 14px 0 0; z-index: 2; }
 .editor-head .icon { font-size: 26px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 12px; background: var(--panel3); }

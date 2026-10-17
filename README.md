@@ -72,7 +72,7 @@ refetch).
    channels/roles + kick/ban/timeout).
 
 ### 2. The repo + website
-1. Push this folder to `YOURNAME/community-bot` (public — Pages needs that on
+1. Push this folder to `KevinBevinXX/Discord-Bot` (public — Pages needs that on
    the free plan).
 2. Repo **Settings → Pages** → Source: *Deploy from a branch* → branch `main`,
    folder `/docs`. Your dashboard is `https://YOURNAME.github.io/community-bot/`.
