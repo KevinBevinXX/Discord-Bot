@@ -54,6 +54,12 @@ required to deploy a settings change.
 
 ## Workflow
 
+- **Pushes are gated**: `.git/hooks/pre-push` runs check + unit tests + the
+  virtual tester and rejects the push on any failure. The virtual tester
+  (`npm run vtest`) drives the real dashboard in headless Chrome against
+  `tools/mock-github.py` (fake Contents API with real sha semantics + a
+  fault injector for the 409 race). The dashboard talks to the mock via the
+  `kcb:apiBase` localStorage override — never set that in a real browser.
 - After ANY change: `npm run check && npm test` (both must pass).
 - The dashboard can be smoke-tested locally with any static server pointed at
   `docs/` — it talks to api.github.com from the browser (CORS is allowed).

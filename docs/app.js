@@ -42,7 +42,9 @@ const state = {
 /* -------------------------------- blob api -------------------------------- */
 
 function apiRoot() {
-  return `https://api.github.com/repos/${state.owner}/${state.repo}`;
+  // test override only: the virtual tester points this at a local mock
+  const base = localStorage.getItem('kcb:apiBase') || 'https://api.github.com';
+  return `${base}/repos/${state.owner}/${state.repo}`;
 }
 function headers(base) {
   const h = { Accept: 'application/vnd.github+json', ...(base || {}) };
@@ -51,7 +53,10 @@ function headers(base) {
 }
 
 async function getFile(path) {
-  const res = await fetch(`${apiRoot()}/contents/${path}?ref=${encodeURIComponent(state.branch)}`, { headers: headers() });
+  // cache:'no-store' + a cache-buster: the browser's HTTP cache was handing
+  // back shas from BEFORE a previous save → 409 on the next PUT
+  const bust = `&t=${Date.now()}`;
+  const res = await fetch(`${apiRoot()}/contents/${path}?ref=${encodeURIComponent(state.branch)}${bust}`, { headers: headers(), cache: 'no-store' });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub ${res.status} — ${res.status === 403 ? 'check your token (needs Contents: read/write on this repo)' : 'error'}`);
   const j = await res.json();
@@ -622,14 +627,23 @@ async function saveCurrent() {
   }
   try {
     edMsg('Committing…', true);
-    const oldSha = state.sha;
-    let sha = oldSha;
+    const text = JSON.stringify(check.config, null, 2);
+    const msg = `dashboard: update ${f.name.toLowerCase()}`;
+    let sha = null;
     try {
       const meta = await getFile('config.json');
       sha = meta ? meta.sha : null;
-    } catch { /* token may be read-less; fall back to cached sha */ }
-    const text = JSON.stringify(check.config, null, 2);
-    const newSha = await putFile('config.json', text, `dashboard: update ${f.name.toLowerCase()}`, sha || undefined);
+    } catch { /* fall back to cached sha */ }
+    let newSha;
+    try {
+      newSha = await putFile('config.json', text, msg, sha || undefined);
+    } catch (e) {
+      if (!/409/.test(String(e))) throw e;
+      // someone changed config.json between our GET and PUT — take the new
+      // sha and retry once (our section still overwrites: last save wins)
+      const meta = await getFile('config.json').catch(() => null);
+      newSha = await putFile('config.json', text, msg + ' (retry after conflict)', meta ? meta.sha : undefined);
+    }
     state.config = check.config;
     state.sha = newSha || sha;
     edMsg('Saved — the bot will apply it within ~20 seconds.', true);
