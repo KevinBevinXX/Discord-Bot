@@ -1,1 +1,389 @@
-null
+{
+  "guildId": "1424054439941111860",
+  "guildName": "KevinBevinX's Community",
+  "memberCount": 4,
+  "botId": "1560471518113435818",
+  "updatedAt": "2026-10-17T03:25:49.708Z",
+  "channels": [
+    {
+      "id": "1485110682331643996",
+      "name": "⌨️commands-here",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1485354720179785801",
+      "name": "♛max-level-chat",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1424054440725450894",
+      "name": "💬general",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1560465162501103636",
+      "name": "📄modchat",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1485110969783943169",
+      "name": "📊polls",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1485110345159807067",
+      "name": "📱levels",
+      "type": "text",
+      "category": "1424054440725450892"
+    },
+    {
+      "id": "1485344037757124668",
+      "name": "⚡boosts",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485344119315370085",
+      "name": "🌐website",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343687314505829",
+      "name": "🎊giveaways",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343152171782397",
+      "name": "👋welcome",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343259822784713",
+      "name": "📋rules",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343759872032778",
+      "name": "📝staff-applications",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343355117371452",
+      "name": "📢announcements",
+      "type": "announcement",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343507253039259",
+      "name": "📱social-media-posts",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343885759615189",
+      "name": "🔴reaction-roles",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485343603273367562",
+      "name": "🤝partner",
+      "type": "text",
+      "category": "1485342374606536745"
+    },
+    {
+      "id": "1485345552634744863",
+      "name": "💬partner-chat",
+      "type": "text",
+      "category": "1485344275930812477"
+    },
+    {
+      "id": "1485345643131047990",
+      "name": "📢partner-announcments",
+      "type": "text",
+      "category": "1485344275930812477"
+    },
+    {
+      "id": "1485348372943736986",
+      "name": "⌨️commands-here",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1500539880244248787",
+      "name": "🎟️ticket-transcripts",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485347590903042279",
+      "name": "💬staff-chat",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485349309011595577",
+      "name": "📜staff-app-logs",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485348109784584262",
+      "name": "📢staff-anouncements",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485348532532805823",
+      "name": "📰mod-logs",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485375776458145994",
+      "name": "ignored-reports",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485349442587590846",
+      "name": "our-ad",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485375634724360393",
+      "name": "reports-that-took-action",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1485374791878840463",
+      "name": "user-reports",
+      "type": "text",
+      "category": "1485347002035212461"
+    },
+    {
+      "id": "1500537842349375649",
+      "name": "🎟️tickets",
+      "type": "text",
+      "category": "1500541456790585377"
+    }
+  ],
+  "roles": [
+    {
+      "id": "1485349782829531166",
+      "name": "👑Owner",
+      "color": "#ff0000",
+      "managed": false
+    },
+    {
+      "id": "1485396695922507836",
+      "name": "Cheese God🧀",
+      "color": "#f1c40f",
+      "managed": false
+    },
+    {
+      "id": "1485352180348354663",
+      "name": "Server Manager💼",
+      "color": "#0069af",
+      "managed": false
+    },
+    {
+      "id": "1485351562187636831",
+      "name": "Head Of Staff🎩",
+      "color": "#89022f",
+      "managed": false
+    },
+    {
+      "id": "1485351270310215790",
+      "name": "Head Admin⚒️",
+      "color": "#340349",
+      "managed": false
+    },
+    {
+      "id": "1485351100902277241",
+      "name": "Admin 🛠",
+      "color": "#4a0567",
+      "managed": false
+    },
+    {
+      "id": "1485350810253791453",
+      "name": "Trial Admin🛠️",
+      "color": "#71368a",
+      "managed": false
+    },
+    {
+      "id": "1485350382438715454",
+      "name": "Mod⚙️",
+      "color": "#d9afe9",
+      "managed": false
+    },
+    {
+      "id": "1485350205326102560",
+      "name": "Helper",
+      "color": "#00ff6a",
+      "managed": false
+    },
+    {
+      "id": "1485347272517488761",
+      "name": "Staff Team🛡️",
+      "color": "#3498db",
+      "managed": false
+    },
+    {
+      "id": "1485373994289991771",
+      "name": "Bot🤖",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485344434639081603",
+      "name": "Partner 🤝",
+      "color": "#f1c40f",
+      "managed": false
+    },
+    {
+      "id": "1485353903770832988",
+      "name": "Level 100 ♛",
+      "color": "#e91e63",
+      "managed": false
+    },
+    {
+      "id": "1485352628165673071",
+      "name": "Booster⚡",
+      "color": "#903a31",
+      "managed": false
+    },
+    {
+      "id": "1485353906480615616",
+      "name": "Level 90",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353908774637751",
+      "name": "Level 80",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353910515531866",
+      "name": "Level 70",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353913040244797",
+      "name": "Level 60",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353915196379259",
+      "name": "Level 50",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353917448458240",
+      "name": "Level 40",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353801773744298",
+      "name": "Level 30",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353737470869627",
+      "name": "Level 20",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485353505517604864",
+      "name": "Level 10",
+      "color": "#1f8b4c",
+      "managed": false
+    },
+    {
+      "id": "1485349783743893616",
+      "name": "Member",
+      "color": "#346e4c",
+      "managed": false
+    },
+    {
+      "id": "1485389486274646107",
+      "name": "2 warnings",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485389564884287642",
+      "name": "4 warnings",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485389564163129425",
+      "name": "6 warnings",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485390391137276096",
+      "name": "8 warnings",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485390424167420116",
+      "name": "10+ warnings",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485397847112421659",
+      "name": "Giveaways",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1485397890737242122",
+      "name": "Anouncements",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1500541446544031754",
+      "name": "Tickets Support",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1500541450452992083",
+      "name": "Tickets Admin",
+      "color": "#000000",
+      "managed": false
+    },
+    {
+      "id": "1560472668069826682",
+      "name": "KevinBevinX Bot",
+      "color": "#000000",
+      "managed": true
+    }
+  ]
+}
