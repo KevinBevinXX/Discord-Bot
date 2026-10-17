@@ -6,35 +6,34 @@
   },
   "tickets": {
     "enabled": true,
-    "panelChannelId": "",
+    "panelChannelId": "1500537842349375649",
     "panelTitle": "Need help?",
     "panelText": "Click the button below and pick a reason to open a private ticket with the team.",
     "panelColor": "#5865F2",
     "reasons": [
       {
         "label": "Modpack / mod issue",
-        "emoji": "🧩",
         "description": "Something is broken with a mod or the modpack",
+        "emoji": "🧩",
         "pingRoleIds": []
       },
       {
         "label": "Server help",
-        "emoji": "🖥️",
         "description": "Cannot join, crashes, lag, whitelist",
+        "emoji": "🖥️",
         "pingRoleIds": []
       },
       {
         "label": "Report a player",
-        "emoji": "🚩",
         "description": "Report rules-breaking behaviour (screenshots help)",
+        "emoji": "🚩",
         "pingRoleIds": []
       }
     ],
     "categoryName": "Tickets",
-    "closedCategoryName": "Tickets — closed",
     "claimRoleIds": [],
     "pingRoleIds": [],
-    "logChannelId": "",
+    "logChannelId": "1500539880244248787",
     "transcripts": true,
     "dmUserOnClose": true,
     "maxOpenPerUser": 1,
@@ -54,6 +53,8 @@
     "xpBase": 100,
     "xpGrowth": 1.4,
     "maxLevel": 100,
+    "xpMultipliers": [],
+    "voiceXpPerMinute": 0,
     "noXpChannelIds": [],
     "noXpRoleIds": [],
     "announceChannelId": "",
@@ -81,6 +82,15 @@
       "enabled": false,
       "allowlist": [],
       "action": "delete"
+    },
+    "duplicateMessages": {
+      "enabled": false,
+      "withinSeconds": 30,
+      "action": "delete+warn"
+    },
+    "everyoneMentions": {
+      "enabled": false,
+      "action": "delete+warn"
     },
     "excessiveCaps": {
       "enabled": false,
