@@ -3,8 +3,44 @@
   "guildName": "KevinBevinX's Community",
   "memberCount": 4,
   "botId": "1560471518113435818",
-  "updatedAt": "2026-10-17T03:33:33.960Z",
+  "updatedAt": "2026-10-17T03:34:07.290Z",
   "channels": [
+    {
+      "id": "1424054440725450892",
+      "name": "{ Community }",
+      "type": "category",
+      "category": ""
+    },
+    {
+      "id": "1485342374606536745",
+      "name": "{ Important & News }",
+      "type": "category",
+      "category": ""
+    },
+    {
+      "id": "1485344275930812477",
+      "name": "{ Partners }",
+      "type": "category",
+      "category": ""
+    },
+    {
+      "id": "1485347002035212461",
+      "name": "{ Staff }",
+      "type": "category",
+      "category": ""
+    },
+    {
+      "id": "1485340372711247982",
+      "name": "{ Voice }",
+      "type": "category",
+      "category": ""
+    },
+    {
+      "id": "1500541456790585377",
+      "name": "🛠️Support",
+      "type": "category",
+      "category": ""
+    },
     {
       "id": "1485110682331643996",
       "name": "⌨️commands-here",
