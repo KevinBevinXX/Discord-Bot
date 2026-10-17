@@ -13,7 +13,13 @@
 const fs = require('fs');
 const path = require('path');
 const Schema = require('./schema');
+const crypto = require('crypto');
+const runtime = require('./runtime');
 const { log } = require('./util');
+
+function hash(text) {
+  return crypto.createHash('sha256').update(text).digest('hex');
+}
 
 const REPO = process.env.GITHUB_REPO || '';
 const BRANCH = process.env.GITHUB_BRANCH || 'main';
@@ -144,9 +150,18 @@ async function pollOnce() {
         return;
       }
       const text = JSON.stringify(state, null, 2);
+      // hash WITHOUT updatedAt — otherwise every second ticks the hash and we
+      // commit forever (which cancelled every Pages build and froze the site)
+      const { updatedAt, ...content } = state;
+      const lastLocal = runtime.get('stateJsonHash', '');
+      if (hash(JSON.stringify(content)) === lastLocal) {
+        lastStateJson = text;
+        return;
+      }
       if (text !== lastStateJson) {
         stateSha = await ghPut(STATE_FILE, text, 'bot: update server snapshot (state.json)');
         lastStateJson = text;
+        runtime.set('stateJsonHash', hash(JSON.stringify(content)));
         log('config', `state.json updated (${state.channels.length} channels, ${state.roles.length} roles)`);
       }
     } catch (e) {
