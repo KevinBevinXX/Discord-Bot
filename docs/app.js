@@ -12,6 +12,26 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 const LS_CREDS = 'kcb:creds';
 
+/* Self-heal against CDN/browser caching: if a fresher index.html references a
+ * newer asset version than the one running, reload ONCE to pick it up. */
+(function () {
+  try {
+    const mine = parseInt(((document.currentScript && document.currentScript.src) || '').match(/v=(\d+)/) ? RegExp.$1 : '0', 10);
+    fetch(location.pathname + '?nocache=' + Date.now(), { cache: 'no-store' })
+      .then((r) => r.text())
+      .then((html) => {
+        const versions = [...html.matchAll(/[?&]v=(\d+)/g)].map((m) => parseInt(m[1], 10));
+        const latest = versions.length ? Math.max(...versions) : mine;
+        const seen = sessionStorage.getItem('kcb:healed:' + latest);
+        if (latest > mine && !seen) {
+          sessionStorage.setItem('kcb:healed:' + latest, '1');
+          location.reload();
+        }
+      })
+      .catch(() => {});
+  } catch { /* never block the page over this */ }
+})();
+
 const state = {
   owner: '', repo: '', branch: 'main', token: '',
   config: null,   // parsed config.json (validated view)
