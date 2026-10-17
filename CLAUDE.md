@@ -17,6 +17,16 @@ required to deploy a settings change.
   what it can; anything it couldn't fix falls back to the DEFAULT (values are
   pre-filled), and if errors remain the bot keeps the previous config and
   logs. Broken hand-edits can't brick the bot.
+- **A dashboard save must change the file's BYTES to be seen.** The Contents
+  API `sha` is the git blob sha (hash of the content), so re-saving an
+  unchanged config.json commits identical bytes, keeps the same sha, and the
+  poller has nothing to apply — which is why a re-save never brought back a
+  ticket panel someone deleted. `docs/app.js` therefore stamps `savedAt` on
+  every save and `src/config.js` compares the RAW file, not the validated
+  config. `validate()` drops the key, so it never becomes a setting. Do not
+  "tidy" either half away. A 5-minute sweep in `index.js` re-posts deleted
+  panels as a backstop; `tickets.apply()` only edits a panel whose payload
+  changed, so that sweep is not an edit every tick.
 - **state.json is written BY THE BOT for the dashboard** (channels/roles
   snapshot → name dropdowns on the site). It needs `GITHUB_TOKEN` in `.env`
   (fine-grained, this repo, Contents: write). Without it the site degrades to
