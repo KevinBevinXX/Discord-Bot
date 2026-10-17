@@ -1,0 +1,126 @@
+{
+  "general": {
+    "guildId": "",
+    "adminRoleIds": [],
+    "logChannelId": ""
+  },
+  "tickets": {
+    "enabled": true,
+    "panelChannelId": "",
+    "panelTitle": "Need help?",
+    "panelText": "Click the button below and pick a reason to open a private ticket with the team.",
+    "panelColor": "#5865F2",
+    "reasons": [
+      {
+        "label": "Modpack / mod issue",
+        "emoji": "🧩",
+        "description": "Something is broken with a mod or the modpack",
+        "pingRoleIds": []
+      },
+      {
+        "label": "Server help",
+        "emoji": "🖥️",
+        "description": "Cannot join, crashes, lag, whitelist",
+        "pingRoleIds": []
+      },
+      {
+        "label": "Report a player",
+        "emoji": "🚩",
+        "description": "Report rules-breaking behaviour (screenshots help)",
+        "pingRoleIds": []
+      }
+    ],
+    "categoryName": "Tickets",
+    "closedCategoryName": "Tickets — closed",
+    "claimRoleIds": [],
+    "pingRoleIds": [],
+    "logChannelId": "",
+    "transcripts": true,
+    "dmUserOnClose": true,
+    "maxOpenPerUser": 1,
+    "autoCloseHours": 0,
+    "greeting": "Hey {user}, thanks for reaching out about **{reason}**.\nA team member will claim this ticket soon — meanwhile, describe the problem and add screenshots if you have them."
+  },
+  "reactionRoles": {
+    "enabled": true,
+    "removeOnUnreact": true,
+    "panels": []
+  },
+  "levels": {
+    "enabled": true,
+    "xpMin": 5,
+    "xpMax": 15,
+    "cooldownSeconds": 60,
+    "xpBase": 100,
+    "xpGrowth": 1.4,
+    "maxLevel": 100,
+    "noXpChannelIds": [],
+    "noXpRoleIds": [],
+    "announceChannelId": "",
+    "announceMessage": "{user} just hit **level {level}**! 🎉",
+    "dmLevelUp": false,
+    "roleRewards": [],
+    "rewardMode": "stack"
+  },
+  "automod": {
+    "enabled": true,
+    "logChannelId": "",
+    "exemptChannelIds": [],
+    "exemptRoleIds": [],
+    "bannedWords": {
+      "enabled": false,
+      "words": [],
+      "action": "delete+warn"
+    },
+    "inviteLinks": {
+      "enabled": false,
+      "allowlist": [],
+      "action": "delete"
+    },
+    "externalLinks": {
+      "enabled": false,
+      "allowlist": [],
+      "action": "delete"
+    },
+    "excessiveCaps": {
+      "enabled": false,
+      "minLength": 12,
+      "percent": 70,
+      "action": "delete+warn"
+    },
+    "excessiveEmojis": {
+      "enabled": false,
+      "max": 8,
+      "action": "delete+warn"
+    },
+    "massMentions": {
+      "enabled": false,
+      "max": 5,
+      "action": "delete+timeout"
+    },
+    "messageSpam": {
+      "enabled": false,
+      "messages": 5,
+      "withinSeconds": 5,
+      "action": "delete+timeout",
+      "timeoutMinutes": 10
+    },
+    "timeoutMinutes": 10,
+    "strikes": {
+      "timeoutAt": 3,
+      "timeoutMinutes": 60,
+      "kickAt": 0,
+      "banAt": 0
+    },
+    "notifyUser": true
+  },
+  "welcome": {
+    "enabled": true,
+    "welcomeChannelId": "",
+    "welcomeMessage": "Welcome {user} to **{server}**! You are member #{memberCount}.",
+    "dmWelcome": "Welcome to **{server}**! Read the rules and say hi 👋",
+    "leaveChannelId": "",
+    "leaveMessage": "{username} left the server. 😔",
+    "autoroleIds": []
+  }
+}
