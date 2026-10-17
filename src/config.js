@@ -30,6 +30,7 @@ const DATA_DIR = path.join(process.cwd(), 'data');
 
 let current = Schema.defaults();
 let currentSha = null;
+let lastAppliedRaw = null;
 let stateSha = null;
 let onChange = null;
 let timer = null;
@@ -114,8 +115,16 @@ function applyConfig(text, source) {
     return false;
   }
   const asJson = JSON.stringify(config);
-  if (asJson === lastAppliedJson && currentSha !== null) return true; // unchanged
-  const first = lastAppliedJson === '';
+  // Re-apply whenever the RAW file changed, not just the validated settings.
+  // The Contents API `sha` is the blob sha (git hash-object of the content), so
+  // a save that changes no setting is byte-identical and invisible here — which
+  // is why re-saving never brought a deleted panel back. The dashboard stamps
+  // `savedAt` on every save, so any save moves this fingerprint; validate()
+  // drops the key, so it never becomes a setting.
+  const rawPrint = hash(text);
+  const first = lastAppliedRaw === null;
+  if (!first && rawPrint === lastAppliedRaw) return true; // nothing new in the file
+  lastAppliedRaw = rawPrint;
   lastAppliedJson = asJson;
   current = config;
   if (onChange) {

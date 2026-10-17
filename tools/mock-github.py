@@ -108,7 +108,7 @@ class Handler(BaseHTTPRequestHandler):
         if given_sha != current_sha:
             return self._json(409, {'message': f'{file} does not match {given_sha}', 'status': '409'})
         REPO[file] = new_text
-        commits.append({'file': file, 'message': body.get('message', '')})
+        commits.append({'file': file, 'message': body.get('message', ''), 'sha': sha_of(new_text)})
         return self._json(200, {'content': {'sha': sha_of(new_text)}})
 
 

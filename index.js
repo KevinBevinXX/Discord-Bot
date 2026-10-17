@@ -70,6 +70,12 @@ client.once(Events.ClientReady, async (c) => {
   // server snapshot for the dashboard's channel/role pickers (10-minute cadence)
   configModule.pushStateCollector(() => state.collect(configModule.get()));
   setInterval(() => void configModule.reload(), 10 * 60 * 1000).unref();
+  // self-heal: re-post panels / re-sync reaction messages if someone deleted them
+  setInterval(async () => {
+    const cfg = configModule.get();
+    await tickets.apply(cfg);
+    await reactionRoles.apply(cfg);
+  }, 5 * 60 * 1000).unref();
 
   log('boot', 'feature sweep started (tickets panel, reaction roles, auto-close timers)');
 });

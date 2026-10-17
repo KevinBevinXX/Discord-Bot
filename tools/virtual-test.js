@@ -168,6 +168,19 @@ async function mockCommits() {
   const saved2 = await q(`document.getElementById('edMsg').textContent`);
   check('save survives a 409 conflict (auto-retry)', /Saved/.test(saved2), saved2);
 
+  // 5b. Kevin's bug: save again WITHOUT touching a field. The committed file
+  // must still differ — identical content keeps the same blob sha, the bot sees
+  // no new commit, and a panel someone deleted stays deleted.
+  const before = await mockCommits();
+  await q(`document.getElementById('edSave').click(); void 0;`);
+  await new Promise((r) => setTimeout(r, 900));
+  const after = await mockCommits();
+  const prev = before[before.length - 1];
+  const last = after[after.length - 1];
+  check('an unchanged save still moves the blob sha (so the bot re-applies)',
+    after.length === before.length + 1 && !!prev && !!last && prev.sha !== last.sha,
+    `${prev && prev.sha ? prev.sha.slice(0, 8) : '?'} -> ${last && last.sha ? last.sha.slice(0, 8) : '?'}`);
+
   // 6. values persisted across reload (localStorage creds + fresh GET)
   await send('Page.reload');
   await new Promise((r) => setTimeout(r, 2500));

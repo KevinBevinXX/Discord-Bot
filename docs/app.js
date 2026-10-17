@@ -627,7 +627,11 @@ async function saveCurrent() {
   }
   try {
     edMsg('Committing…', true);
-    const text = JSON.stringify(check.config, null, 2);
+    // Stamp every save. An unchanged config serialises byte-identically, the
+    // blob sha would not move, and the bot would see nothing to apply — that is
+    // what stopped a re-save from resurrecting a deleted ticket panel. The
+    // bot's validate() drops this key, so it is never a setting.
+    const text = JSON.stringify({ ...check.config, savedAt: new Date().toISOString() }, null, 2);
     const msg = `dashboard: update ${f.name.toLowerCase()}`;
     let sha = null;
     try {

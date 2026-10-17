@@ -22,6 +22,7 @@ const {
   PermissionFlagsBits,
   ChannelType,
 } = require('discord.js');
+const crypto = require('crypto');
 const db = require('../db');
 const context = require('../context');
 const runtime = require('../runtime');
@@ -67,12 +68,20 @@ async function apply(config) {
     return;
   }
   const panel = panelPayload(t);
+  const print = crypto.createHash('sha256').update(JSON.stringify(panel)).digest('hex').slice(0, 16);
+  const prints = runtime.get('ticketPanelPrint', {});
   const savedId = runtime.get('ticketPanel', {})[guildId];
   if (savedId) {
     try {
+      // a deleted message answers 404 / JSON error 10008 "Unknown message"
       const msg = await channel.messages.fetch(savedId);
       if (msg.author && msg.author.id === client.user.id) {
-        await msg.edit(panel);
+        // apply() also runs on a 5-minute sweep: only edit a panel that changed
+        if (prints[guildId] !== print) {
+          await msg.edit(panel);
+          runtime.set('ticketPanelPrint', { ...prints, [guildId]: print });
+          log(TAG, `panel updated in #${channel.name ?? t.panelChannelId}`);
+        }
         return;
       }
     } catch {
@@ -82,6 +91,7 @@ async function apply(config) {
   try {
     const created = await channel.send(panel);
     runtime.set('ticketPanel', { ...runtime.get('ticketPanel', {}), [guildId]: created.id });
+    runtime.set('ticketPanelPrint', { ...runtime.get('ticketPanelPrint', {}), [guildId]: print });
     log(TAG, `panel posted in #${channel.name ?? t.panelChannelId} (${created.id})`);
   } catch (e) {
     err(TAG, `posting panel failed: ${e.message}`);
