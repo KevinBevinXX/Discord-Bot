@@ -139,7 +139,8 @@ function saveCreds() {
 }
 
 function setConn(kind, text) {
-  $('connStatus').innerHTML = `<span class="dot ${kind}"></span>${esc(text)}`;
+  const tokenNote = state.token ? ' · ✏️ token stored (can save)' : ' · 🔒 read-only (no token — saves will fail)';
+  $('connStatus').innerHTML = `<span class="dot ${kind}"></span>${esc(text)}${tokenNote}`;
 }
 
 async function connect() {
@@ -599,6 +600,10 @@ function diffText(a, b, path = '') {
 
 async function saveCurrent() {
   if (!editing) return;
+  if (!state.token) {
+    edMsg('Needs a token first: in the Connect card, click “get one →”, tick ONLY the repo Discord-Bot with Contents: Read and write, paste it in the token field, then Connect & load again.', false);
+    return;
+  }
   const f = S.FEATURES.find((x) => x.key === editing);
   // validate the WHOLE config with the new section swapped in
   const merged = JSON.parse(JSON.stringify(state.config));
