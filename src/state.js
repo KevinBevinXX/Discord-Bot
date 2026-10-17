@@ -8,7 +8,9 @@ const context = require('./context');
 
 async function collect(config) {
   const client = context.getClient();
-  const guild = client && client.guilds.cache.get(config.general.guildId);
+  // prefer the configured guild, else the one we're in (single-server bot)
+  const guild = (config.general.guildId && client && client.guilds.cache.get(config.general.guildId))
+    || (client ? client.guilds.cache.first() : null);
   if (!guild) return null;
 
   // refresh the cache so memberCount and edited channels are current

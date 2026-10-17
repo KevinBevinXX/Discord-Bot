@@ -139,7 +139,8 @@ const TAG = 'automod';
 const spam = new SpamTracker();
 const lastEscalation = new Map(); // `${guildId}:${userId}` -> tier tier last fired
 
-const RULE_ORDER = ['bannedWords', 'inviteLinks', 'externalLinks', 'excessiveCaps', 'excessiveEmojis', 'massMentions'];
+const RULE_ORDER = ['bannedWords', 'inviteLinks', 'externalLinks', 'excessiveCaps', 'excessiveEmojis', 'massMentions', 'duplicateMessages', 'everyoneMentions'];
+const lastMessage = new Map(); // userId -> {text, at}
 
 function evaluate(message, cfg) {
   const a = cfg.automod || {};
@@ -161,6 +162,16 @@ function evaluate(message, cfg) {
   if (ms && ms.enabled && spam.isSpam(message.author.id, Date.now(), ms.withinSeconds, ms.messages)) {
     return { rule: 'messageSpam', ruleCfg: ms, hit: true };
   }
+  const dup = a.duplicateMessages;
+  if (dup && dup.enabled) {
+    const prev = lastMessage.get(message.author.id);
+    const hitDup = checkDuplicate(prev && prev.text, prev && prev.at, message.content, Date.now(), dup.withinSeconds);
+    if (hitDup) return { rule: 'duplicateMessages', ruleCfg: dup, hit: { excerpt: hitDup } };
+  }
+  const ev = a.everyoneMentions;
+  if (ev && ev.enabled && checkEveryoneMentions(message)) {
+    return { rule: 'everyoneMentions', ruleCfg: ev, hit: '@everyone/@here' };
+  }
   return null;
 }
 
@@ -175,6 +186,7 @@ async function handleMessage(message) {
   if (message.member && hasAnyRole(message.member, a.exemptRoleIds)) return false;
 
   const violation = evaluate(message, cfg);
+  lastMessage.set(message.author.id, { text: message.content || '', at: Date.now() });
   if (!violation) return false;
 
   const { rule, ruleCfg } = violation;
@@ -205,6 +217,8 @@ async function handleMessage(message) {
 
 const HUMAN = {
   bannedWords: 'that word is not allowed here.',
+  duplicateMessages: 'stop repeating the same message.',
+  everyoneMentions: 'do not ping @everyone — that is for staff.',
   inviteLinks: 'advertising other servers is not allowed.',
   externalLinks: 'links are not allowed here.',
   excessiveCaps: 'ease up on the CAPS.',
@@ -265,7 +279,21 @@ function logToChannel(cfg, content) {
   if (ch && ch.isTextBased()) ch.send({ content: content.slice(0, 1900) }).catch(() => {});
 }
 
+/** Same text twice inside the window (pure given prior text/timestamp).
+ *  Compared compacted so spaced/leet evasion ("h e l l o", "hell0") matches. */
+function checkDuplicate(previousText, previousAt, text, nowMs, withinSeconds) {
+  if (!previousText || !previousAt) return null;
+  if (nowMs - previousAt > withinSeconds * 1000) return null;
+  const norm = (t) => normalizeText(t).replace(/ /g, '');
+  if (norm(previousText) && norm(previousText) === norm(text)) return previousText.slice(0, 60);
+  return null;
+}
+
+function checkEveryoneMentions(message) {
+  return message.mentions && message.mentions.everyone ? '@everyone/@here' : null;
+}
+
 module.exports.handleMessage = handleMessage;
 module.exports.resetEscalation = (guildId, userId) => lastEscalation.delete(`${guildId}:${userId}`);
 module.exports.spam = spam;
-Object.assign(module.exports, { normalizeText, checkBannedWords, checkInvites, checkLinks, checkCaps, checkEmojis, checkMentions, SpamTracker });
+Object.assign(module.exports, { normalizeText, checkBannedWords, checkInvites, checkLinks, checkCaps, checkEmojis, checkMentions, checkDuplicate, checkEveryoneMentions, SpamTracker });

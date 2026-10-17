@@ -139,6 +139,10 @@ async function pollOnce() {
   if (collector && process.env.GITHUB_TOKEN) {
     try {
       const state = await collector();
+      if (!state) {
+        log('config', 'state.json: no guild reachable yet — skipping snapshot');
+        return;
+      }
       const text = JSON.stringify(state, null, 2);
       if (text !== lastStateJson) {
         stateSha = await ghPut(STATE_FILE, text, 'bot: update server snapshot (state.json)');

@@ -11,6 +11,7 @@
  * we fetch() partials before acting (discordjs.guide/legacy/popular-topics/partials).
  */
 const { log, err, emojiKey, parseEmoji, toReact, safeSend } = require('../util');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 const runtime = require('../runtime');
 const context = require('../context');
 const theme = require('../theme');
@@ -129,20 +130,118 @@ async function apply(config) {
   const client = context.getClient();
   const guild = client && client.guilds.cache.get(config.general.guildId);
   if (rr.enabled && guild) {
+    let idx = 0;
     for (const panel of rr.panels || []) {
+      const panelIdx = idx++;
       if (!panel.name || !Array.isArray(panel.bindings)) continue;
       const messageId = await ensureMessage(client, guild, panel, config.general.guildId);
       if (!messageId) continue;
       try {
         const channel = await guild.channels.fetch(panel.channelId);
         const message = await channel.messages.fetch(messageId);
-        await ensureReactions(message, panel);
+        const components = componentsFor(panel, panelIdx);
+        if (components) {
+          await message.edit({ components }); // keep buttons/menus in step with the config
+          if (message.reactions.cache.size) await message.reactions.removeAll().catch(() => {});
+        } else {
+          await ensureReactions(message, panel);
+        }
       } catch (e) {
         err(TAG, `panel ${panel.name}: ${e.message}`);
       }
     }
   }
   indexBindings(config); // always refresh (clears stale entries when disabled)
+}
+
+/* ----------------------- component styles (Carl/Sapphire) ------------------ */
+
+const BTN_PREFIX = 'rrb:';
+const SEL_PREFIX = 'rrd:';
+
+/** Rows of buttons for a panel (≤25 bindings → 5 rows of 5). */
+function buttonRows(panel, panelIdx) {
+  const rows = [];
+  const list = panel.bindings || [];
+  for (let r = 0; r * 5 < Math.min(list.length, 25); r++) {
+    const row = new ActionRowBuilder();
+    for (let i = r * 5; i < Math.min((r + 1) * 5, list.length, 25); i++) {
+      const b = list[i];
+      const btn = new ButtonBuilder().setCustomId(`${BTN_PREFIX}${panelIdx}:${i}`).setStyle(ButtonStyle.Primary);
+      const label = b.description || b.roleId;
+      if (label && label.length <= 80) btn.setLabel(label.slice(0, 80));
+      const pe = parseEmoji(b.emoji);
+      if (pe) btn.setEmoji(pe.id ? { name: pe.name, id: pe.id, animated: pe.animated } : pe.name);
+      row.addComponents(btn);
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+function dropdownRows(panel, panelIdx) {
+  const opts = (panel.bindings || []).slice(0, 25).map((b, i) => {
+    const o = new StringSelectMenuOptionBuilder().setLabel((b.description || `Role ${i + 1}`).slice(0, 100)).setValue(String(i));
+    const pe = parseEmoji(b.emoji);
+    if (pe) o.setEmoji(pe.id ? { name: pe.name, id: pe.id, animated: pe.animated } : pe.name);
+    return o;
+  });
+  if (!opts.length) return [];
+  return [new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder().setCustomId(`${SEL_PREFIX}${panelIdx}`)
+      .setPlaceholder('Pick your roles').setMinValues(0).setMaxValues(Math.min(opts.length, 25))
+      .addOptions(opts),
+  )];
+}
+
+/** Components a panel's message should carry for non-reaction styles. */
+function componentsFor(panel, panelIdx) {
+  const style = panel.style || 'reactions';
+  if (style === 'buttons') return buttonRows(panel, panelIdx);
+  if (style === 'dropdown') return dropdownRows(panel, panelIdx);
+  return null;
+}
+
+async function handlePanelButton(interaction) {
+  const cfg = context.currentConfig();
+  const [, pi, bi] = interaction.customId.split(':');
+  const panel = (cfg.reactionRoles.panels || [])[parseInt(pi, 10)];
+  const binding = panel && (panel.bindings || [])[parseInt(bi, 10)];
+  if (!binding) return void replyOnce(interaction, 'This button no longer matches the configuration.');
+  const member = interaction.member;
+  if (member.roles.cache.has(binding.roleId)) {
+    await member.roles.remove(binding.roleId, 'reaction role (button toggle)').catch((e) => err(TAG, `remove: ${e.message}`));
+    return void replyOnce(interaction, `Took away <@&${binding.roleId}>.`);
+  }
+  await member.roles.add(binding.roleId, 'reaction role (button)').catch((e) => reportRoleError(interaction.guild, `button grant failed: ${e.message}`));
+  await replyOnce(interaction, `Gave you <@&${binding.roleId}>.`);
+}
+
+async function handlePanelSelect(interaction) {
+  const cfg = context.currentConfig();
+  const pi = parseInt(interaction.customId.slice(SEL_PREFIX.length), 10);
+  const panel = (cfg.reactionRoles.panels || [])[pi];
+  if (!panel) return void replyOnce(interaction, 'This menu no longer matches the configuration.');
+  const member = interaction.member;
+  const wanted = new Set(interaction.values.map((v) => (panel.bindings || [])[parseInt(v, 10)]).filter(Boolean).map((b) => b.roleId));
+  for (const b of panel.bindings || []) {
+    if (!b.roleId) continue;
+    try {
+      if (wanted.has(b.roleId) && !member.roles.cache.has(b.roleId)) {
+        await member.roles.add(b.roleId, 'reaction role (dropdown)');
+      } else if (!wanted.has(b.roleId) && member.roles.cache.has(b.roleId)) {
+        await member.roles.remove(b.roleId, 'reaction role (dropdown)');
+      }
+    } catch (e) {
+      reportRoleError(interaction.guild, `dropdown sync failed for <@&${b.roleId}>: ${e.message}`);
+    }
+  }
+  await replyOnce(interaction, `Updated: ${[...wanted].map((id) => `<@&${id}>`).join(', ') || 'no roles'}.`);
+}
+
+function replyOnce(interaction, content) {
+  const fn = interaction.deferred || interaction.replied ? interaction.followUp : interaction.reply;
+  return fn.call(interaction, { content, ephemeral: true }).catch(() => {});
 }
 
 /* ------------------------------ gateway events ----------------------------- */
@@ -177,6 +276,11 @@ async function register(client) {
     } catch (e) {
       err(TAG, `add handler: ${e.message}`);
     }
+  });
+
+  client.on('interactionCreate', (i) => {
+    if (i.isButton() && i.customId.startsWith(BTN_PREFIX)) void handlePanelButton(i).catch((e) => err(TAG, e.message));
+    else if (i.isStringSelectMenu() && i.customId.startsWith(SEL_PREFIX)) void handlePanelSelect(i).catch((e) => err(TAG, e.message));
   });
 
   client.on('messageReactionRemove', async (reaction, user) => {

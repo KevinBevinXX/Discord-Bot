@@ -69,6 +69,11 @@
         { key: 'panels', label: 'Panels', type: 'list', def: [], item: [
           { key: 'name', label: 'Panel name', type: 'text', required: true, max: 50, hint: 'Just for you, in the dashboard.' },
           { key: 'channelId', label: 'Channel', type: 'channel' },
+          { key: 'style', label: 'How members pick', type: 'select', def: 'reactions', options: [
+            { value: 'reactions', label: 'Reactions (classic)' },
+            { value: 'buttons', label: 'Buttons' },
+            { value: 'dropdown', label: 'Dropdown menu' },
+          ] },
           { key: 'createMode', label: 'Message source', type: 'select', def: 'new', options: [
             { value: 'new', label: 'Bot posts a new message' },
             { value: 'existing', label: 'Use a message you posted' },
@@ -97,6 +102,11 @@
         { key: 'xpBase', label: 'XP for the first level', type: 'number', def: 100, min: 1, max: 100000 },
         { key: 'xpGrowth', label: 'XP multiplier per level', type: 'number', def: 1.4, min: 1.05, max: 3, step: 0.05, hint: 'Level 2 costs base; level 3 costs base × multiplier; and so on.' },
         { key: 'maxLevel', label: 'Max level', type: 'number', def: 100, min: 1, max: 500, hint: 'At max level no more XP is granted.' },
+        { key: 'xpMultipliers', label: 'XP multipliers (per role)', type: 'list', def: [], item: [
+          { key: 'roleId', label: 'Role', type: 'role', required: true },
+          { key: 'percent', label: 'XP multiplier %', type: 'number', def: 100, min: 0, max: 1000, hint: '150 = these members earn 1.5× XP. Multiple roles stack additively.' },
+        ] },
+        { key: 'voiceXpPerMinute', label: 'XP per minute in voice', type: 'number', def: 0, min: 0, max: 1000, hint: '0 = off. Arcane-style voice XP; no-XP roles still apply.' },
         { key: 'noXpChannelIds', label: 'No-XP channels', type: 'channels', def: [] },
         { key: 'noXpRoleIds', label: 'No-XP roles', type: 'roles', def: [], hint: 'Members holding any of these never gain XP.' },
         { key: 'announceChannelId', label: 'Level-up announcement channel', type: 'channel', hint: 'Empty = announce in the same channel the message came from.' },
@@ -136,6 +146,15 @@
           { key: 'enabled', label: 'Enabled', type: 'bool', def: false },
           { key: 'allowlist', label: 'Allowed domains (one per line)', type: 'wordlist', def: [], hint: 'e.g. youtube.com — subdomains included automatically.' },
           { key: 'action', label: 'Action', type: 'action', def: 'delete' },
+        ] },
+        { key: 'duplicateMessages', label: 'Duplicate messages', type: 'group', def: {}, fields: [
+          { key: 'enabled', label: 'Enabled', type: 'bool', def: false },
+          { key: 'withinSeconds', label: 'Same text within seconds', type: 'number', def: 30, min: 2, max: 600 },
+          { key: 'action', label: 'Action', type: 'action', def: 'delete+warn' },
+        ] },
+        { key: 'everyoneMentions', label: '@everyone / @here pings', type: 'group', def: {}, fields: [
+          { key: 'enabled', label: 'Enabled (blocks members who CAN ping)', type: 'bool', def: false, hint: 'Members without the permission can never ping anyway; this also stops those who can.' },
+          { key: 'action', label: 'Action', type: 'action', def: 'delete+warn' },
         ] },
         { key: 'excessiveCaps', label: 'Excessive CAPS', type: 'group', def: {}, fields: [
           { key: 'enabled', label: 'Enabled', type: 'bool', def: false },

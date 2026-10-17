@@ -64,6 +64,7 @@ client.once(Events.ClientReady, async (c) => {
   await tickets.apply(cfg);
   await reactionRoles.apply(cfg);
 
+  levels.startVoiceTicker(c);
   // server snapshot for the dashboard's channel/role pickers (10-minute cadence)
   configModule.pushStateCollector(() => state.collect(configModule.get()));
   setInterval(() => void configModule.reload(), 10 * 60 * 1000).unref();

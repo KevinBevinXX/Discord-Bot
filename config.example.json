@@ -54,6 +54,8 @@
     "xpBase": 100,
     "xpGrowth": 1.4,
     "maxLevel": 100,
+    "xpMultipliers": [],
+    "voiceXpPerMinute": 0,
     "noXpChannelIds": [],
     "noXpRoleIds": [],
     "announceChannelId": "",
@@ -81,6 +83,15 @@
       "enabled": false,
       "allowlist": [],
       "action": "delete"
+    },
+    "duplicateMessages": {
+      "enabled": false,
+      "withinSeconds": 30,
+      "action": "delete+warn"
+    },
+    "everyoneMentions": {
+      "enabled": false,
+      "action": "delete+warn"
     },
     "excessiveCaps": {
       "enabled": false,

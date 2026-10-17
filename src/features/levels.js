@@ -38,64 +38,82 @@ async function handleMessage(message) {
 
   const min = Math.min(L.xpMin ?? 5, L.xpMax ?? 15);
   const max = Math.max(L.xpMin ?? 5, L.xpMax ?? 15);
-  const gained = min === max ? max : min + Math.floor(Math.random() * (max - min + 1));
+  const raw = min === max ? max : min + Math.floor(Math.random() * (max - min + 1));
+  const mult = multiplierOf(message.member, L);
+  const gained = Math.round(raw * mult);
   if (gained <= 0) return false;
 
-  const row = db.getXp(message.guildId, message.author.id);
+  await grantXp(message.guild, message.member, gained, L, cfg);
+  return true;
+}
+
+
+/** Sum of every matching role multiplier (percent → fraction). Pure. */
+function multiplierOf(member, L) {
+  const list = (L && L.xpMultipliers) || [];
+  let total = list.length ? 100 : 100; // no list = normal rate; list present = base 100 still applies
+  let matched = false;
+  for (const m of list) {
+    if (m && m.roleId && member && member.roles.cache.has(m.roleId)) {
+      total += (m.percent ?? 100) - 100;
+      matched = true;
+    }
+  }
+  return total <= 0 ? 0 : total / 100;
+}
+
+/** Shared grant path for message XP and voice XP. */
+async function grantXp(guild, member, amount, L, cfg) {
+  if (!amount || amount <= 0) return;
+  const row = db.getXp(guild.id, member.id);
   const alreadyMax = row.level >= L.maxLevel;
   let level = row.level;
-  let xpInto = row.xp + gained;
-  const base = L.xpBase, growth = L.xpGrowth;
+  let xpInto = row.xp + amount;
   if (!alreadyMax) {
     while (level < L.maxLevel) {
-      const cost = Schema.costToNext(level, base, growth);
+      const cost = Schema.costToNext(level, L.xpBase, L.xpGrowth);
       if (xpInto < cost) break;
       xpInto -= cost;
       level++;
     }
   }
-  db.applyXpGain(message.guildId, message.author.id, gained, level, Math.floor(Date.now() / 1000));
-  if (level !== row.level) await celebrate(message, level, L, cfg);
-  return true;
+  db.applyXpGain(guild.id, member.id, amount, level, Math.floor(Date.now() / 1000));
+  if (level !== row.level) await celebrateMember(guild, member, level, L, cfg);
 }
 
-async function celebrate(message, newLevel, L, cfg) {
+async function celebrateMember(guild, member, newLevel, L, cfg) {
   const where = L.announceChannelId
-    ? message.guild.channels.cache.get(L.announceChannelId) || message.channel
-    : message.channel;
+    ? guild.channels.cache.get(L.announceChannelId)
+    : null;
   const text = fill(L.announceMessage || '{user} just hit **level {level}**! 🎉', {
-    user: `<@${message.author.id}>`,
-    username: message.author.username,
+    user: `<@${member.id}>`,
+    username: member.user.username,
     level: newLevel,
-    server: message.guild.name,
+    server: guild.name,
   });
-  const ann = theme.embed(message.client, {
+  const ann = theme.embed(member.client, {
     color: theme.COLORS.success,
     title: '🎉 Level up!',
     description: text,
-    footer: `Levels · ${message.guild.name}`,
+    footer: `Levels · ${guild.name}`,
   });
-  await where.send({ embeds: [ann], allowedMentions: { users: [message.author.id] } }).catch((e) => err(TAG, `announce: ${e.message}`));
-  if (L.dmLevelUp) message.author.send({ embeds: [ann] }).catch(() => {});
-  log(TAG, `${message.author.username} reached level ${newLevel}`);
+  if (where && where.isTextBased()) await where.send({ embeds: [ann], allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `announce: ${e.message}`));
+  if (L.dmLevelUp) member.send({ embeds: [ann] }).catch(() => {});
+  log(TAG, `${member.user.username} reached level ${newLevel}`);
 
   if ((L.roleRewards || []).length) {
     const earned = L.roleRewards.filter((r) => r.level <= newLevel).sort((a, b) => b.level - a.level);
     if (earned.length) {
       const grant = L.rewardMode === 'replace' ? [earned[0]] : earned;
       try {
-        const me = message.guild.members.me;
+        const me = guild.members.me;
         for (const reward of grant) {
-          const role = message.guild.roles.cache.get(reward.roleId);
-          if (role && role.position < me.roles.highest.position) {
-            await message.member.roles.add(reward.roleId, `level ${newLevel} reward`);
-          }
+          const role = guild.roles.cache.get(reward.roleId);
+          if (role && role.position < me.roles.highest.position) await member.roles.add(reward.roleId, `level ${newLevel} reward`);
         }
         if (L.rewardMode === 'replace' && earned.length > 1) {
           for (const lower of earned.slice(1)) {
-            if (message.member.roles.cache.has(lower.roleId)) {
-              await message.member.roles.remove(lower.roleId, 'level reward (replace mode)').catch(() => {});
-            }
+            if (member.roles.cache.has(lower.roleId)) await member.roles.remove(lower.roleId, 'level reward (replace mode)').catch(() => {});
           }
         }
       } catch (e) {
@@ -160,4 +178,27 @@ async function leaderboard(interaction, page) {
   await interaction.reply({ embeds: [embed] }).catch(() => {});
 }
 
-module.exports = { handleMessage, rankCard, leaderboard, careerXp };
+/* voice XP — Arcane style: flat XP per minute in a voice channel */
+const VOICE_TICK_MS = 60 * 1000;
+function startVoiceTicker(client) {
+  return setInterval(() => {
+    try {
+      const cfg = context.currentConfig();
+      const L = cfg.levels || {};
+      if (!L.enabled || !L.voiceXpPerMinute || !cfg.general.guildId) return;
+      const guild = client.guilds.cache.get(cfg.general.guildId);
+      if (!guild) return;
+      const nowSec = Math.floor(Date.now() / 1000);
+      for (const [_, state] of guild.voiceStates.cache) {
+        if (state.member && !state.member.user.bot && state.channelId && state.channelId !== guild.afkChannelId) {
+          if ((L.noXpRoleIds || []).length && hasAnyRole(state.member, L.noXpRoleIds)) continue;
+          void grantXp(guild, state.member, L.voiceXpPerMinute, L, cfg);
+        }
+      }
+    } catch (e) {
+      err(TAG, `voice tick: ${e.message}`);
+    }
+  }, VOICE_TICK_MS).unref();
+}
+
+module.exports = { handleMessage, rankCard, leaderboard, careerXp, multiplierOf, startVoiceTicker };
