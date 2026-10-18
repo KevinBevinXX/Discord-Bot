@@ -197,7 +197,7 @@
         { key: 'enabled', label: 'Enabled', type: 'bool', def: true },
         { key: 'welcomeChannelId', label: 'Welcome channel', type: 'channel' },
         { key: 'welcomeMessage', label: 'Welcome message', type: 'textarea', def: 'Welcome {user} to **{server}**! You are member #{memberCount}.' },
-        { key: 'dmWelcome', label: 'DM message (empty = off)', type: 'textarea', def: 'Welcome to **{server}**! Read the rules and say hi 👋' },
+        { key: 'dmWelcome', label: 'DM message (empty = off)', type: 'textarea', def: '', hint: 'Off unless you write something here. An unasked-for DM is the fastest way to get a bot reported.' },
         { key: 'leaveChannelId', label: 'Goodbye channel', type: 'channel' },
         { key: 'leaveMessage', label: 'Goodbye message', type: 'textarea', def: '{username} left the server. 😔' },
         { key: 'autoroleIds', label: 'Auto role on join', type: 'roles', def: [] },

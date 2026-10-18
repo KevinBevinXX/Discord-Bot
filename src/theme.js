@@ -16,14 +16,20 @@ const COLORS = {
   neutral: 0x95a0b8,   // gray-blue — closed/archived, goodbyes
 };
 
-/** Pre-styled builder: brand footer (bot avatar as the icon when known) + timestamp. */
+/**
+ * Pre-styled builder: brand footer (bot avatar as the icon when known) +
+ * timestamp. Pass `footer: false` for neither — Discord renders the footer
+ * text and the timestamp as one line, so a message that should end on its own
+ * words has to drop both.
+ */
 function embed(client, { color = COLORS.primary, title, description, fields = [], footer } = {}) {
   const icon = client && client.user ? client.user.displayAvatarURL({ size: 64, extension: 'png' }) : undefined;
-  const e = new EmbedBuilder().setColor(color).setTimestamp();
+  const e = new EmbedBuilder().setColor(color);
+  if (footer !== false) e.setTimestamp();
   if (title) e.setTitle(String(title).slice(0, 256));
   if (description) e.setDescription(String(description).slice(0, 4096));
   if (fields.length) e.addFields(fields.map((f) => ({ name: String(f.name).slice(0, 256), value: String(f.value).slice(0, 1024) || '\u200b', inline: !!f.inline })));
-  e.setFooter({ text: footer ? `${BRAND} · ${footer}` : BRAND, ...(icon ? { iconURL: icon } : {}) });
+  if (footer !== false) e.setFooter({ text: footer ? `${BRAND} · ${footer}` : BRAND, ...(icon ? { iconURL: icon } : {}) });
   return e;
 }
 

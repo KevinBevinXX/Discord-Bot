@@ -39,7 +39,7 @@ async function onJoin(member) {
       color: theme.COLORS.success,
       title: `👋 Welcome to ${member.guild.name}!`,
       description: fill(w.welcomeMessage, vars),
-      footer: `member #${member.guild.memberCount}`,
+      footer: false, // no "KBX Community Bot · member #N · <time>" line
     });
     if (ch && ch.isTextBased()) await ch.send({ embeds: [greet], allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `welcome send: ${e.message}`));
     else err(TAG, `welcome channel ${w.welcomeChannelId} not found or not text`);

@@ -41,3 +41,21 @@ test('snowflakes + bar', () => {
   assert.equal(bar(100, 100), '██████████');
   assert.equal(bar(50, 100), '█████░░░░░');
 });
+/* The welcome greeting should end on its own words: Discord renders the footer
+ * text and the timestamp as one line, so dropping the footer has to drop the
+ * timestamp with it. */
+const theme = require('../src/theme');
+
+test('theme.embed: footer false removes the whole footer line', () => {
+  const e = theme.embed(null, { description: 'hi', footer: false }).toJSON();
+  assert.equal(e.footer, undefined, 'no footer text');
+  assert.equal(e.timestamp, undefined, 'and no timestamp beside it');
+});
+
+test('theme.embed: every other embed keeps the brand footer and timestamp', () => {
+  const branded = theme.embed(null, { description: 'hi' }).toJSON();
+  assert.match(branded.footer.text, /KBX Community Bot/);
+  assert.ok(branded.timestamp, 'timestamp still there');
+  const withText = theme.embed(null, { description: 'hi', footer: 'Tickets' }).toJSON();
+  assert.equal(withText.footer.text, 'KBX Community Bot · Tickets');
+});
