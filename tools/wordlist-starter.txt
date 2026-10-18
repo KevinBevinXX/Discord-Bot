@@ -166,14 +166,6 @@ commit suicide
 slit your wrists
 i hope you die
 
-# --- scams and raid bait ---------------------------------------------------
-free nitro
-nitro giveaway
-steamcommunity gift
-discord nitro
-free robux
-crypto doubler
-
 # --- mild: delete this whole section if casual swearing is allowed ---------
 # These fire on everyday speech more than the rest. "hoe" is also a garden
 # tool and "fag" is a cigarette in British English - decide for your server.
