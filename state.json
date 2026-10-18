@@ -3,7 +3,7 @@
   "guildName": "KevinBevinX's Community",
   "memberCount": 4,
   "botId": "1560471518113435818",
-  "updatedAt": "2026-10-18T17:17:39.006Z",
+  "updatedAt": "2026-10-18T17:47:47.751Z",
   "channels": [
     {
       "id": "1424054440725450892",
@@ -426,6 +426,13 @@
       "name": "KevinBevinX Bot",
       "color": "#000000",
       "managed": true
+    }
+  ],
+  "emojis": [
+    {
+      "id": "1500647437025546290",
+      "name": "KevinBevinX",
+      "animated": false
     }
   ]
 }
