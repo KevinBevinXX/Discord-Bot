@@ -54,7 +54,7 @@
         { key: 'dmUserOnClose', label: 'DM the opener a transcript link', type: 'bool', def: true },
         { key: 'maxOpenPerUser', label: 'Max open tickets per user', type: 'number', def: 1, min: 1, max: 10 },
         { key: 'autoCloseHours', label: 'Auto-close after hours of silence', type: 'number', def: 0, min: 0, max: 720, hint: '0 = never.' },
-        { key: 'greeting', label: 'First message inside a ticket', type: 'textarea', def: 'Hey {user}, thanks for reaching out about **{reason}**.\nA team member will claim this ticket soon — meanwhile, describe the problem and add screenshots if you have them.' },
+        { key: 'greeting', label: 'First message inside a ticket', type: 'textarea', hint: 'This is the embed the opener sees. Placeholders: {user} pings them, {username} is their name, {reason} is the ticket type, {server} is the server name.', def: 'Hey {user}, thanks for reaching out about **{reason}**.\nA team member will claim this ticket soon — meanwhile, describe the problem and add screenshots if you have them.' },
       ],
     },
     {

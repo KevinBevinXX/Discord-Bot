@@ -122,7 +122,6 @@ function panelPayload(t) {
     color,
     title: t.panelTitle || 'Need help?',
     description: t.panelText || '',
-    footer: 'Tickets',
   });
   return {
     embeds: [embed],
@@ -207,8 +206,12 @@ async function handleReasonSelect(interaction) {
   const reason = (t.reasons || [])[idx];
   if (!reason) return void replyOnce(interaction, 'That reason no longer exists — try the button again.');
 
-  // Respect the panel's own role pings (both global and per-reason)
-  const pingIds = Array.isArray(reason.pingRoleIds) ? reason.pingRoleIds : [];
+  // Both lists: the roles for this reason AND the ones pinged in every ticket
+  // (that second setting existed on the dashboard but was never read).
+  const pingIds = [...new Set([
+    ...(Array.isArray(t.pingRoleIds) ? t.pingRoleIds : []),
+    ...(Array.isArray(reason.pingRoleIds) ? reason.pingRoleIds : []),
+  ])];
 
   if (t.maxOpenPerUser > 0) {
     const open = db.openTicketCount(cfg.general.guildId, interaction.user.id);
@@ -221,11 +224,6 @@ async function handleReasonSelect(interaction) {
   try {
     const channel = await createTicketChannel(interaction.guild, interaction.member, reason, pingIds, cfg);
     await interaction.editReply(`Ticket opened: ${channel}`).catch(() => {});
-    const mentions = [`${interaction.user}`, ...pingIds.map((id) => `<@&${id}>`)].join(' ');
-    // Pings have to sit in message CONTENT — a mention inside an embed
-    // notifies nobody, which is the only reason this second message exists.
-    // It carries no buttons: the init embed owns the Claim/Close row.
-    await channel.send({ content: `${mentions}`.slice(0, 1800) });
   } catch (e) {
     err(TAG, `creating ticket failed: ${e.message}`);
     await interaction.editReply(`I could not create the ticket — check my permissions in that category. (${e.message.slice(0, 150)})`).catch(() => {});
@@ -291,11 +289,17 @@ async function createTicketChannel(guild, opener, reason, pingIds, cfg) {
       { name: 'Opened by', value: `<@${opener.id}>`, inline: true },
       { name: 'Claimed by', value: '—', inline: true },
     ],
-    footer: `Ticket #${number}`,
   });
   embed.setColor(theme.COLORS.success);
 
-  const initMsg = await channel.send({ embeds: [embed], components: [controlsRow()] });
+  // One message, not two: the pings ride on this message's CONTENT (a mention
+  // inside an embed notifies nobody) while the greeting stays in the embed.
+  const mentions = [`<@${opener.id}>`, ...(pingIds || []).map((id) => `<@&${id}>`)].join(' ');
+  const initMsg = await channel.send({
+    content: mentions.slice(0, 1800),
+    embeds: [embed],
+    components: [controlsRow()],
+  });
   db.updateTicket(cfg.general.guildId, channel.id, { init_message_id: initMsg.id });
   return channel;
 }
@@ -451,7 +455,6 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
             { name: '❓ Reason', value: (row.reason || 'No reason specified').slice(0, 1024), inline: true },
             ...(reasonText ? [{ name: '📝 Close reason', value: reasonText.slice(0, 1024), inline: false }] : []),
           ],
-          footer: 'Tickets',
         });
         // No file: spoilering it did not stop Discord unrolling the markup,
         // it only put SPOILER_ in the name. The transcript lives behind the

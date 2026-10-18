@@ -266,7 +266,6 @@ function logEmbed(message, cfg, rule, excerpt, action) {
       { name: 'Action', value: action, inline: true },
       { name: 'Message', value: excerpt || '(no text)', inline: false },
     ],
-    footer: `Auto-mod`,
   });
   ch.send({ embeds: [embed] }).catch(() => {});
 }

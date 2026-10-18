@@ -27,7 +27,6 @@ const COMMANDS = [
       const cfg = context.currentConfig();
       const embed = theme.embed(interaction.client, {
         title: "KBX Community Bot",
-        footer: '/help',
       })
         .setDescription(' Tickets 🎫 · Reaction roles 🔁 · Levels 📶 · Auto-mod 🛡️ · Welcome 👋 · Warnings ⚠️')
         .addFields(
@@ -45,7 +44,6 @@ const COMMANDS = [
       const cfg = context.currentConfig();
       const embed = theme.embed(interaction.client, {
         title: 'Bot status',
-        footer: '/botinfo',
       })
         .addFields(
           { name: 'Config source', value: process.env.GITHUB_REPO ? `github.com/${process.env.GITHUB_REPO} (${process.env.GITHUB_BRANCH || 'main'})` : 'default (no repo configured)', inline: true },

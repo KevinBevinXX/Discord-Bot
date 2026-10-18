@@ -61,8 +61,7 @@ async function warnings(interaction) {
   const embed = theme.embed(interaction.client, {
     color: count >= 3 ? theme.COLORS.danger : theme.COLORS.warn,
     title: `🧾 ${target.username} — ${count} strike${count === 1 ? '' : 's'}`,
-    description: lines.join('\n').slice(0, 4000),
-    footer: 'showing latest ' + rows.length,
+    description: `${lines.join('\n').slice(0, 3900)}\n\n_showing latest ${rows.length}_`,
   });
   await interaction.reply({ embeds: [embed], ephemeral: true }).catch(() => {});
 }
