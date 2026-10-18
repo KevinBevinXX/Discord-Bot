@@ -59,3 +59,29 @@ test('theme.embed: every other embed keeps the brand footer and timestamp', () =
   const withText = theme.embed(null, { description: 'hi', footer: 'Tickets' }).toJSON();
   assert.equal(withText.footer.text, 'KBX Community Bot · Tickets');
 });
+
+/* Reaction-role panels explain themselves: the message lists every emoji with
+ * the role it grants, and no control is ever labelled with a raw role ID. */
+const rr = require('../src/features/reactionroles');
+
+test('legendFor lists each emoji with its role', () => {
+  const legend = rr.legendFor({ bindings: [
+    { emoji: '🎮', roleId: '111', description: 'Java player' },
+    { emoji: '🎲', roleId: '222' },
+    { emoji: '', roleId: '333' },          // incomplete — skipped
+    { emoji: '🏓', roleId: '' },           // incomplete — skipped
+  ] });
+  assert.equal(legend, '🎮 — <@&111> — Java player\n🎲 — <@&222>');
+});
+
+test('legendFor on a panel with no bindings is empty, not broken', () => {
+  assert.equal(rr.legendFor({}), '');
+  assert.equal(rr.legendFor({ bindings: [] }), '');
+});
+
+test('labelFor never shows a raw role ID', () => {
+  const guild = { roles: { cache: new Map([['111', { name: 'Java player' }]]) } };
+  assert.equal(rr.labelFor({ roleId: '111', description: 'Pick Java' }, guild, 0), 'Pick Java');
+  assert.equal(rr.labelFor({ roleId: '111' }, guild, 0), 'Java player', 'falls back to the role name');
+  assert.equal(rr.labelFor({ roleId: '999' }, guild, 3), 'Role 4', 'and to a placeholder if the role is gone');
+});

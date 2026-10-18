@@ -40,6 +40,41 @@ function indexBindings(config) {
   }
 }
 
+/**
+ * The "🎮 — @Java player" list under the panel text. Without it a reaction
+ * panel is a row of emoji with nothing saying what they do. Role MENTIONS are
+ * used on purpose: inside an embed they render as the role's name and colour
+ * and notify nobody.
+ */
+function legendFor(panel) {
+  return (panel.bindings || [])
+    .filter((b) => b.emoji && b.roleId)
+    .map((b) => `${b.emoji} — <@&${b.roleId}>${b.description ? ` — ${b.description}` : ''}`)
+    .join('\n');
+}
+
+/** Embed for a panel: your text, then the legend. */
+function panelEmbed(panel) {
+  const intro = panel.messageContent
+    || (panel.style === 'reactions' || !panel.style
+      ? 'React below to get a role, un-react to drop it.'
+      : 'Pick your roles below.');
+  const legend = legendFor(panel);
+  return theme.embed(context.getClient(), {
+    color: theme.COLORS.primary,
+    title: panel.embedTitle || 'Pick your roles',
+    description: `${intro}${legend ? `\n\n${legend}` : ''}`.slice(0, 4096),
+    footer: 'Reaction roles',
+  });
+}
+
+/** A button/dropdown label: your description, else the role's own name. */
+function labelFor(binding, guild, i) {
+  if (binding.description) return binding.description.slice(0, 80);
+  const role = guild && guild.roles.cache.get(binding.roleId);
+  return (role ? role.name : `Role ${i + 1}`).slice(0, 80);
+}
+
 async function ensureMessage(client, guild, panel, guildId) {
   const cfgChannel = panel.channelId;
   if (!cfgChannel) return null;
@@ -75,17 +110,7 @@ async function ensureMessage(client, guild, panel, guildId) {
         }
       }
       if (!messageId) {
-        const parts = [panel.messageContent || ''];
-        const client = context.getClient();
-        const payload = panel.messageContent || panel.embedTitle
-          ? { embeds: [theme.embed(client, {
-              color: theme.COLORS.primary,
-              title: panel.embedTitle || 'Pick your roles',
-              description: (panel.messageContent || 'React below to get your roles, un-react to drop them.').slice(0, 4096),
-              footer: 'Reaction roles',
-            })] }
-          : { content: `React below for roles! (${panel.name})` };
-        const msg = await channel.send(payload).catch((e) => { err(TAG, `posting panel ${panel.name} failed: ${e.message}`); return null; });
+        const msg = await channel.send({ embeds: [panelEmbed(panel)] }).catch((e) => { err(TAG, `posting panel ${panel.name} failed: ${e.message}`); return null; });
         if (!msg) return null;
         messageId = msg.id;
         runtime.set('reactionPanels', { ...savedMap(), [guildId]: { ...(savedMap()[guildId] || {}), [panel.name]: messageId } });
@@ -139,9 +164,23 @@ async function apply(config) {
       try {
         const channel = await guild.channels.fetch(panel.channelId);
         const message = await channel.messages.fetch(messageId);
-        const components = componentsFor(panel, panelIdx);
+        const components = componentsFor(panel, panelIdx, guild);
+        // the legend changes whenever a binding does, so the message body has
+        // to be re-rendered too — not just the buttons
+        const ours = message.author && client.user && message.author.id === client.user.id;
+        if (ours) {
+          const print = JSON.stringify([panel.messageContent, panel.embedTitle, panel.style, panel.bindings]);
+          const prints = runtime.get('reactionPanelPrint', {});
+          if (prints[messageId] !== print) {
+            await message.edit({ embeds: [panelEmbed(panel)], components: components || [] })
+              .catch((e) => err(TAG, `panel ${panel.name}: edit failed: ${e.message}`));
+            runtime.set('reactionPanelPrint', { ...prints, [messageId]: print });
+            log(TAG, `panel ${panel.name} updated`);
+          }
+        } else if (components) {
+          await message.edit({ components });
+        }
         if (components) {
-          await message.edit({ components }); // keep buttons/menus in step with the config
           if (message.reactions.cache.size) await message.reactions.removeAll().catch(() => {});
         } else {
           await ensureReactions(message, panel);
@@ -160,7 +199,7 @@ const BTN_PREFIX = 'rrb:';
 const SEL_PREFIX = 'rrd:';
 
 /** Rows of buttons for a panel (≤25 bindings → 5 rows of 5). */
-function buttonRows(panel, panelIdx) {
+function buttonRows(panel, panelIdx, guild) {
   const rows = [];
   const list = panel.bindings || [];
   for (let r = 0; r * 5 < Math.min(list.length, 25); r++) {
@@ -168,8 +207,7 @@ function buttonRows(panel, panelIdx) {
     for (let i = r * 5; i < Math.min((r + 1) * 5, list.length, 25); i++) {
       const b = list[i];
       const btn = new ButtonBuilder().setCustomId(`${BTN_PREFIX}${panelIdx}:${i}`).setStyle(ButtonStyle.Primary);
-      const label = b.description || b.roleId;
-      if (label && label.length <= 80) btn.setLabel(label.slice(0, 80));
+      btn.setLabel(labelFor(b, guild, i));
       const pe = parseEmoji(b.emoji);
       if (pe) btn.setEmoji(pe.id ? { name: pe.name, id: pe.id, animated: pe.animated } : pe.name);
       row.addComponents(btn);
@@ -179,9 +217,9 @@ function buttonRows(panel, panelIdx) {
   return rows;
 }
 
-function dropdownRows(panel, panelIdx) {
+function dropdownRows(panel, panelIdx, guild) {
   const opts = (panel.bindings || []).slice(0, 25).map((b, i) => {
-    const o = new StringSelectMenuOptionBuilder().setLabel((b.description || `Role ${i + 1}`).slice(0, 100)).setValue(String(i));
+    const o = new StringSelectMenuOptionBuilder().setLabel(labelFor(b, guild, i)).setValue(String(i));
     const pe = parseEmoji(b.emoji);
     if (pe) o.setEmoji(pe.id ? { name: pe.name, id: pe.id, animated: pe.animated } : pe.name);
     return o;
@@ -195,10 +233,10 @@ function dropdownRows(panel, panelIdx) {
 }
 
 /** Components a panel's message should carry for non-reaction styles. */
-function componentsFor(panel, panelIdx) {
+function componentsFor(panel, panelIdx, guild) {
   const style = panel.style || 'reactions';
-  if (style === 'buttons') return buttonRows(panel, panelIdx);
-  if (style === 'dropdown') return dropdownRows(panel, panelIdx);
+  if (style === 'buttons') return buttonRows(panel, panelIdx, guild);
+  if (style === 'dropdown') return dropdownRows(panel, panelIdx, guild);
   return null;
 }
 
@@ -322,4 +360,4 @@ function reportRoleError(guild, text) {
   if (ch && ch.isTextBased()) safeSend(ch, `🔁 Reaction roles: ${text}`, TAG);
 }
 
-module.exports = { register, apply, indexBindings, findBinding };
+module.exports = { register, apply, indexBindings, findBinding, legendFor, labelFor };
