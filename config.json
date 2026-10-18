@@ -8,7 +8,7 @@
     "enabled": true,
     "panelChannelId": "1500537842349375649",
     "panelTitle": "Open A Ticket",
-    "panelText": "",
+    "panelText": "Need Help? Open A ticket here",
     "panelColor": "#5865F2",
     "reasons": [
       {
@@ -158,5 +158,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-18T04:41:33.813Z"
+  "savedAt": "2026-10-18T04:43:54.310Z"
 }
