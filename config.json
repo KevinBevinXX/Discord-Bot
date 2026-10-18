@@ -139,7 +139,7 @@
   },
   "welcome": {
     "enabled": true,
-    "welcomeChannelId": "",
+    "welcomeChannelId": "1485343152171782397",
     "welcomeMessage": "Welcome {user} to **{server}**! You are member #{memberCount}.",
     "dmWelcome": "Welcome to **{server}**!  You are the",
     "leaveChannelId": "",
@@ -148,5 +148,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-17T23:01:38.195Z"
+  "savedAt": "2026-10-18T04:04:45.283Z"
 }
