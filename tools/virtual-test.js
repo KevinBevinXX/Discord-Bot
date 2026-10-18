@@ -168,6 +168,29 @@ async function mockCommits() {
   const saved2 = await q(`document.getElementById('edMsg').textContent`);
   check('save survives a 409 conflict (auto-retry)', /Saved/.test(saved2), saved2);
 
+  // 4b. the emoji picker offers every emoji, not a hand-picked shelf, and the
+  //     search narrows it
+  const pickerAudit = await q(`(() => {
+    const b = document.querySelector('.list-item .emoji-btn');
+    if (!b) return 'no picker button';
+    b.click();
+    const pop = document.querySelector('.emoji-pop');
+    if (!pop) return 'no popover';
+    const total = pop.querySelectorAll('.emo').length;
+    const search = pop.querySelector('.emo-search');
+    search.value = 'ghost';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    const shown = [...pop.querySelectorAll('.emo')].filter((x) => !x.hidden);
+    const names = shown.map((x) => x.dataset.n).join(',');
+    search.value = '';
+    search.dispatchEvent(new Event('input', { bubbles: true }));
+    pop.querySelector('.emo-x').click();
+    return JSON.stringify({ total, matched: shown.length, names: names.slice(0, 60) });
+  })()`);
+  const pk = (() => { try { return JSON.parse(pickerAudit); } catch { return null; } })();
+  check('emoji picker offers the whole unicode set', !!pk && pk.total > 1000, pk ? `${pk.total} emoji` : pickerAudit);
+  check('emoji search narrows it', !!pk && pk.matched > 0 && pk.matched < 50, pk ? `"ghost" → ${pk.matched} (${pk.names})` : pickerAudit);
+
   // 5b. Kevin's bug: save again WITHOUT touching a field. The committed file
   // must still differ — identical content keeps the same blob sha, the bot sees
   // no new commit, and a panel someone deleted stays deleted.

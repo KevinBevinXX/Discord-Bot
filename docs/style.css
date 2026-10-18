@@ -150,3 +150,10 @@ ol.steps li { margin-bottom: 6px; }
 /* a list nested inside a list item (reaction-role emoji→role pairs) */
 .fld .nested-list, .nested-list { grid-column: 1 / -1; margin-top: 10px; padding-left: 10px; border-left: 2px solid var(--line, #2a2f3a); }
 .nested-list .section-title { font-size: 13px; opacity: .85; }
+
+/* emoji picker: search + scrollable sections (1900+ unicode + server emoji) */
+.emo-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 6px 8px; }
+.emo-body { max-height: 290px; overflow-y: auto; }
+.emo-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; }
+.emo img { width: 20px; height: 20px; vertical-align: middle; }
+.emo-none { opacity: .7; font-size: 12px; padding: 8px; }

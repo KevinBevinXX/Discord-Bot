@@ -16,6 +16,7 @@ async function collect(config) {
   // refresh the cache so memberCount and edited channels are current
   await guild.channels.fetch().catch(() => {});
   await guild.roles.fetch().catch(() => {});
+  await guild.emojis.fetch().catch(() => {});
 
 
   const channels = guild.channels.cache
@@ -33,6 +34,11 @@ async function collect(config) {
     .sorted((a, b) => b.position - a.position)
     .map((r) => ({ id: r.id, name: r.name, color: r.hexColor, managed: r.managed }));
 
+  // the dashboard's emoji picker offers these alongside the unicode set
+  const emojis = guild.emojis.cache
+    .map((e) => ({ id: e.id, name: e.name, animated: !!e.animated }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   return {
     guildId: guild.id,
     guildName: guild.name,
@@ -41,6 +47,7 @@ async function collect(config) {
     updatedAt: new Date().toISOString(),
     channels,
     roles,
+    emojis,
   };
 }
 
