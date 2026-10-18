@@ -122,7 +122,7 @@ function panelPayload(t) {
     color,
     title: t.panelTitle || 'Need help?',
     description: t.panelText || '',
-    footer: 'Tickets',
+    footer: false, // the panel speaks for itself — no brand/timestamp line
   });
   return {
     embeds: [embed],
