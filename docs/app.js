@@ -412,6 +412,14 @@ function buildField(field, value, onChange) {
       wrap.querySelector('textarea').addEventListener('input', (e) => onChange(e.target.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)));
       return wrap;
     }
+    case 'list': {
+      // a list inside a list item — reaction-role panels hold their emoji→role
+      // pairs this way. Without this branch the editor printed
+      // "unsupported field list" and the pairs could not be edited at all.
+      const nested = buildList(field, Array.isArray(value) ? value : [], onChange);
+      nested.classList.add('nested-list');
+      return nested;
+    }
     default:
       wrap.innerHTML = `<p class="muted">unsupported field ${esc(field.type)}</p>`;
       return wrap;

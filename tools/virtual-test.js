@@ -189,6 +189,34 @@ async function mockCommits() {
   const persisted = await q(`document.querySelector('.list-item .emoji-input') ? document.querySelector('.list-item .emoji-input').value : '?'`);
   check('saved emoji still there after reload', persisted === '🚩', JSON.stringify(persisted));
 
+  // 7. every field in every editor must actually render. A schema type the
+  //    renderer does not know printed "unsupported field list" where the
+  //    reaction-role emoji->role pairs should have been, so the pairs could
+  //    not be edited at all.
+  const audit = await q(`(() => {
+    const bad = [];
+    let pairFields = 0;
+    for (const f of CommunitySchema.FEATURES) {
+      openEditor(f.key);
+      if (f.key === 'reactionRoles') {
+        const add = [...document.querySelectorAll('#edBody .addwrap button')];
+        if (add.length) add[add.length - 1].click();            // a panel
+        const nested = [...document.querySelectorAll('#edBody .addwrap button')];
+        if (nested.length) nested[0].click();                   // an emoji -> role pair
+        pairFields = [...document.querySelectorAll('#edBody label')]
+          .map((l) => (l.childNodes[0] && l.childNodes[0].textContent || '').trim())
+          .filter((t) => /^(Emoji|Role|What this role is)/.test(t)).length;
+      }
+      [...document.querySelectorAll('#edBody .muted')]
+        .filter((x) => /unsupported field/.test(x.textContent))
+        .forEach((x) => bad.push(f.key + ': ' + x.textContent.trim()));
+    }
+    return JSON.stringify({ bad, pairFields });
+  })()`);
+  const a = JSON.parse(audit);
+  check('every schema field renders (no "unsupported field")', a.bad.length === 0, a.bad.join('; '));
+  check('reaction roles: a panel can hold emoji -> role pairs', a.pairFields >= 3, `${a.pairFields} pair fields`);
+
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} virtual tests passed`);
   process.exit(failed.length ? 1 : 0);
