@@ -94,3 +94,75 @@ test('ARCADE-like curve: xpGrowth 1 stays linear', () => {
   assert.equal(S.costToNext(7, 50, 1), 50);
   assert.equal(S.totalXpForLevel(4, 50, 1), 200);
 });
+/**
+ * Lists nest: a reaction-role panel holds a list of emoji→role pairs. The
+ * validator walked top-level lists only, so saving a panel with pairs failed
+ * with "reactionRoles.panels[].bindings: unsupported field type" — the
+ * dashboard refused the save and the feature could not be configured at all.
+ */
+test('a list inside a list validates instead of being rejected', () => {
+  const r = S.validate({ reactionRoles: { enabled: true, panels: [{
+    name: 'Roles', channelId: '1500537842349375649', style: 'reactions',
+    bindings: [
+      { emoji: '🎮', roleId: '111111111111111111', description: 'Java player' },
+      { emoji: '🎲', roleId: '222222222222222222' },
+    ],
+  }] } });
+  assert.deepEqual(r.errors, []);
+  assert.equal(r.ok, true);
+  const b = r.config.reactionRoles.panels[0].bindings;
+  assert.equal(b.length, 2);
+  assert.equal(b[0].description, 'Java player');
+  assert.equal(b[1].description, '', 'optional sub-field defaults');
+});
+
+test('a broken pair is dropped, the good ones survive', () => {
+  const r = S.validate({ reactionRoles: { panels: [{
+    name: 'Roles', bindings: [
+      { emoji: '🎮', roleId: '111111111111111111' },
+      { emoji: '🎲', roleId: 'not-an-id' },
+    ],
+  }] } });
+  assert.equal(r.ok, false);
+  assert.equal(r.config.reactionRoles.panels[0].bindings.length, 1);
+});
+
+test('a panel with no pairs yet is fine', () => {
+  const r = S.validate({ reactionRoles: { panels: [{ name: 'Empty' }] } });
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.config.reactionRoles.panels[0].bindings, []);
+});
+
+/* The general guard: every field type the schema uses must be understood by
+ * the validator, at every depth. This is what would have caught it. */
+test('no field type in the schema is "unsupported"', () => {
+  const sample = (f) => {
+    switch (f.type) {
+      case 'bool': return true;
+      case 'number': return f.min !== undefined ? f.min : 1;
+      case 'channel': case 'role': case 'guild': return '111111111111111111';
+      case 'channels': case 'roles': return ['111111111111111111'];
+      case 'wordlist': return ['word'];
+      case 'select': return (f.options || [{}])[0].value;
+      case 'action': return 'delete';
+      case 'emoji': return '🎮';
+      case 'color': return '#5865F2';
+      case 'list': return [Object.fromEntries((f.item || []).map((sub) => [sub.key, sample(sub)]))];
+      default: return 'x';
+    }
+  };
+  const cfg = {};
+  for (const feat of S.FEATURES) {
+    cfg[feat.key] = {};
+    for (const f of feat.fields) {
+      if (f.type === 'group') {
+        cfg[feat.key][f.key] = Object.fromEntries(f.fields.map((sub) => [sub.key, sample(sub)]));
+      } else {
+        cfg[feat.key][f.key] = sample(f);
+      }
+    }
+  }
+  const r = S.validate(cfg);
+  const unsupported = r.errors.filter((e) => /unsupported field type/.test(e));
+  assert.deepEqual(unsupported, [], 'every schema type must validate at every depth');
+});

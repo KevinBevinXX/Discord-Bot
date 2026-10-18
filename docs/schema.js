@@ -232,7 +232,7 @@
       case 'bool': return false;
       case 'number': return 0;
       case 'channels': case 'roles': return [];
-      case 'wordlist': return [];
+      case 'wordlist': case 'list': return [];
       default: return '';
     }
   }
@@ -275,33 +275,49 @@
         validateGroup(field.fields, v, out[field.key], p, errors);
       } else if (field.type === 'list') {
         if (v === undefined) continue;
-        if (!Array.isArray(v)) {
-          errors.push(`${p}: expected a list`);
-          continue;
-        }
-        const items = [];
-        for (const raw of v.slice(0, 25)) {
-          const item = {};
-          const before = errors.length;
-          for (const sub of field.item) {
-            const has = raw !== null && raw !== undefined && Object.prototype.hasOwnProperty.call(raw, sub.key);
-            if (!has && !sub.required) {
-              item[sub.key] = sub.def !== undefined ? deepCopy(sub.def) : typeDefault(sub.type);
-              continue;
-            }
-            const coerced = coerce(sub, has ? raw[sub.key] : undefined, `${p}[].${sub.key}`, errors);
-            if (coerced !== undefined) item[sub.key] = coerced;
-          }
-          if (errors.length === before) items.push(item);
-        }
-        const listKey = field.key; // e.g. reasons, panels…
-        out[listKey] = items;
+        const items = listItems(field, v, p, errors);
+        if (items !== undefined) out[field.key] = items;
       } else if (v !== undefined) {
         const coerced = coerce(field, v, p, errors);
         if (coerced !== undefined) out[field.key] = coerced;
         // on error: the pre-filled default stays
       }
     }
+  }
+
+  /**
+   * Validates the items of a list field. Lists nest — a reaction-role panel
+   * holds a list of emoji→role pairs — so this has to be callable from
+   * coerce() as well as from the top-level walk. Keeping one implementation
+   * is the point: the two drifted before, and a nested list came back
+   * "unsupported field type" on save.
+   */
+  function listItems(field, v, p, errors) {
+    if (!Array.isArray(v)) {
+      errors.push(`${p}: expected a list`);
+      return undefined;
+    }
+    const items = [];
+    for (const raw of v.slice(0, 25)) {
+      const item = {};
+      let broken = false;
+      for (const sub of field.item || []) {
+        const has = raw !== null && raw !== undefined && Object.prototype.hasOwnProperty.call(raw, sub.key);
+        if (!has && !sub.required) {
+          item[sub.key] = sub.def !== undefined ? deepCopy(sub.def) : typeDefault(sub.type);
+          continue;
+        }
+        const before = errors.length;
+        const coerced = coerce(sub, has ? raw[sub.key] : undefined, `${p}[].${sub.key}`, errors);
+        if (coerced !== undefined) item[sub.key] = coerced;
+        // A bad entry in a NESTED list has already been dropped on its own;
+        // it must not take the whole parent with it. One mistyped emoji→role
+        // pair should not delete the panel's channel, style and other pairs.
+        if (sub.type !== 'list' && errors.length > before) broken = true;
+      }
+      if (!broken) items.push(item);
+    }
+    return items;
   }
 
   function coerce(field, v, p, errors) {
@@ -370,6 +386,7 @@
       if (allowed.indexOf(v) === -1) return fail(`action must be one of: ${allowed.join(', ')}`);
       return v;
     }
+    if (t === 'list') return listItems(field, v, p, errors);
     return fail('unsupported field type');
   }
 
