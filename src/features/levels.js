@@ -95,6 +95,7 @@ async function celebrateMember(guild, member, newLevel, L, cfg) {
     color: theme.COLORS.success,
     title: '🎉 Level up!',
     description: text,
+    footer: `Levels · ${guild.name}`,
   });
   if (where && where.isTextBased()) await where.send({ embeds: [ann], allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `announce: ${e.message}`));
   if (L.dmLevelUp) member.send({ embeds: [ann] }).catch(() => {});
@@ -142,6 +143,7 @@ async function rankCard(interaction, targetUser) {
 
   const embed = theme.embed(interaction.client, {
     title: `${member ? member.displayName : targetUser.username}'s level card`,
+    footer: `Levels · rank command`,
   })
     .setThumbnail(member ? member.displayAvatarURL({ size: 128 }) : targetUser.displayAvatarURL({ size: 128 }))
     .addFields(
@@ -170,7 +172,8 @@ async function leaderboard(interaction, page) {
   });
   const embed = theme.embed(interaction.client, {
     title: `🏆 Leaderboard — page ${page}`,
-    description: `${lines.join('\n')}\n\n_${fmtNum(db.totalTracked(interaction.guildId))} members tracked · /leaderboard <page>_`,
+    description: lines.join('\n'),
+    footer: `${fmtNum(db.totalTracked(interaction.guildId))} members tracked · /leaderboard <page>`,
   });
   await interaction.reply({ embeds: [embed] }).catch(() => {});
 }

@@ -128,7 +128,7 @@
     "enabled": true,
     "welcomeChannelId": "",
     "welcomeMessage": "Welcome {user} to **{server}**! You are member #{memberCount}.",
-    "dmWelcome": "Welcome to **{server}**! Read the rules and say hi 👋",
+    "dmWelcome": "",
     "leaveChannelId": "",
     "leaveMessage": "{username} left the server. 😔",
     "autoroleIds": []

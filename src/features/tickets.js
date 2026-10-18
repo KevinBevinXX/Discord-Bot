@@ -122,6 +122,7 @@ function panelPayload(t) {
     color,
     title: t.panelTitle || 'Need help?',
     description: t.panelText || '',
+    footer: 'Tickets',
   });
   return {
     embeds: [embed],
@@ -289,6 +290,7 @@ async function createTicketChannel(guild, opener, reason, pingIds, cfg) {
       { name: 'Opened by', value: `<@${opener.id}>`, inline: true },
       { name: 'Claimed by', value: '—', inline: true },
     ],
+    footer: false, // the greeting ends on its own words, no "Ticket #N · <time>"
   });
   embed.setColor(theme.COLORS.success);
 
@@ -461,6 +463,7 @@ async function closeTicket(guild, channel, closer, reasonText, cfg) {
             { name: '❓ Reason', value: (row.reason || 'No reason specified').slice(0, 1024), inline: true },
             ...(reasonText ? [{ name: '📝 Close reason', value: reasonText.slice(0, 1024), inline: false }] : []),
           ],
+          footer: 'Tickets',
         });
         // No file: spoilering it did not stop Discord unrolling the markup,
         // it only put SPOILER_ in the name. The transcript lives behind the

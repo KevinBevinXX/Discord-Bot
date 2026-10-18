@@ -82,6 +82,7 @@ async function ensureMessage(client, guild, panel, guildId) {
               color: theme.COLORS.primary,
               title: panel.embedTitle || 'Pick your roles',
               description: (panel.messageContent || 'React below to get your roles, un-react to drop them.').slice(0, 4096),
+              footer: 'Reaction roles',
             })] }
           : { content: `React below for roles! (${panel.name})` };
         const msg = await channel.send(payload).catch((e) => { err(TAG, `posting panel ${panel.name} failed: ${e.message}`); return null; });

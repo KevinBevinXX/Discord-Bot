@@ -39,6 +39,7 @@ async function onJoin(member) {
       color: theme.COLORS.success,
       title: `👋 Welcome to ${member.guild.name}!`,
       description: fill(w.welcomeMessage, vars),
+      footer: false, // no "KBX Community Bot · member #N · <time>" line
     });
     if (ch && ch.isTextBased()) await ch.send({ embeds: [greet], allowedMentions: { users: [member.id] } }).catch((e) => err(TAG, `welcome send: ${e.message}`));
     else err(TAG, `welcome channel ${w.welcomeChannelId} not found or not text`);
@@ -64,6 +65,7 @@ async function onLeave(member) {
       server: member.guild.name,
       memberCount: member.guild.memberCount,
     }),
+    footer: 'Welcome & goodbye',
   });
   await ch.send({ embeds: [bye] }).catch((e) => err(TAG, `leave send: ${e.message}`));
 }
