@@ -25,7 +25,12 @@ const LS_CREDS = 'kcb:creds';
         const seen = sessionStorage.getItem('kcb:healed:' + latest);
         if (latest > mine && !seen) {
           sessionStorage.setItem('kcb:healed:' + latest, '1');
-          location.reload();
+          // NOT location.reload(): that is an ordinary refresh and may be
+          // served straight from the HTTP cache (MDN: the forceGet bypass is
+          // Firefox-only), so a stale index.html re-served itself and the page
+          // healed into doing nothing. A URL the cache has never seen cannot
+          // come back stale.
+          location.replace(location.pathname + '?v=' + latest + (location.hash || ''));
         }
       })
       .catch(() => {});
