@@ -45,6 +45,7 @@
           { key: 'description', label: 'Description', type: 'text', max: 100 },
           { key: 'emoji', label: 'Emoji', type: 'emoji', hint: 'Unicode emoji, e.g. 🧩' },
           { key: 'pingRoleIds', label: 'Roles pinged in this ticket type', type: 'roles' },
+          { key: 'greeting', label: 'First message for this reason', type: 'textarea', hint: 'Leave empty to use the default first message further down. Same placeholders: {user}, {username}, {reason}, {server}.' },
         ] },
         { key: 'categoryName', label: 'Open tickets category', type: 'category', def: 'Tickets', hint: 'Existing name from the dropdown, or type a new one — the bot creates it if missing.' },
         { key: 'claimRoleIds', label: 'Roles that can claim/close', type: 'roles', def: [], hint: '“Claim” shows for these roles (and admins).' },
@@ -54,7 +55,7 @@
         { key: 'dmUserOnClose', label: 'DM the opener a transcript link', type: 'bool', def: true },
         { key: 'maxOpenPerUser', label: 'Max open tickets per user', type: 'number', def: 1, min: 1, max: 10 },
         { key: 'autoCloseHours', label: 'Auto-close after hours of silence', type: 'number', def: 0, min: 0, max: 720, hint: '0 = never.' },
-        { key: 'greeting', label: 'First message inside a ticket', type: 'textarea', hint: 'This is the embed the opener sees. Placeholders: {user} pings them, {username} is their name, {reason} is the ticket type, {server} is the server name.', def: 'Hey {user}, thanks for reaching out about **{reason}**.\nA team member will claim this ticket soon — meanwhile, describe the problem and add screenshots if you have them.' },
+        { key: 'greeting', label: 'Default first message inside a ticket', type: 'textarea', hint: 'The embed the opener sees, for every reason that has no message of its own. Placeholders: {user} pings them, {username} is their name, {reason} is the ticket type, {server} is the server name.', def: 'Hey {user}, thanks for reaching out about **{reason}**.\nA team member will claim this ticket soon — meanwhile, describe the problem and add screenshots if you have them.' },
       ],
     },
     {

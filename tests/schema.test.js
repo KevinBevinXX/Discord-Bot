@@ -55,7 +55,7 @@ test('list subfields: required enforced, missing optional fields default', () =>
   ] } });
   assert.equal(r.ok, false);
   assert.equal(r.config.tickets.reasons.length, 1);
-  assert.deepEqual(r.config.tickets.reasons[0], { label: 'Hello', description: '', emoji: '', pingRoleIds: [] });
+  assert.deepEqual(r.config.tickets.reasons[0], { label: 'Hello', description: '', emoji: '', pingRoleIds: [], greeting: '' });
 });
 
 test('action + select enums validated', () => {

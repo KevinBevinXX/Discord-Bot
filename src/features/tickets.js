@@ -279,7 +279,7 @@ async function createTicketChannel(guild, opener, reason, pingIds, cfg) {
   const embed = theme.embed(client, {
     color: theme.COLORS.success,
     title: `${displayEmoji(reason.emoji) || '🎫'} ${reason.label}`.slice(0, 256),
-    description: fill(t.greeting || 'Ticket for **{reason}**.', {
+    description: fill(greetingFor(t, reason), {
       user: `<@${opener.id}>`,
       username: opener.user.username,
       reason: reason.label,
@@ -367,6 +367,12 @@ async function handleDelete(interaction) {
   if (!isStaff(interaction.member, cfg)) return void replyOnce(interaction, 'Only staff can delete tickets.');
   await interaction.reply({ content: '🗑️ Deleting this channel…', ephemeral: true }).catch(() => {});
   setTimeout(() => interaction.channel.delete(`ticket #${row.number} deleted by ${interaction.user.username}`).catch((e) => err(TAG, `delete failed: ${e.message}`)), 500);
+}
+
+/** A reason can carry its own first message; otherwise the ticket default. */
+function greetingFor(t, reason) {
+  const own = reason && typeof reason.greeting === 'string' ? reason.greeting.trim() : '';
+  return own || (t && t.greeting) || 'Ticket for **{reason}**.';
 }
 
 /** Best-effort username for the opener, from the messages we already have. */
@@ -558,4 +564,4 @@ function replyOnce(interaction, content) {
   return fn.call(interaction, { content, ephemeral: true }).catch(() => {});
 }
 
-module.exports = { register, apply, closeTicket, controlsRow, chunkText, panelAction, IDs };
+module.exports = { register, apply, closeTicket, controlsRow, chunkText, panelAction, greetingFor, IDs };

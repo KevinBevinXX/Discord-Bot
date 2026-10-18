@@ -76,3 +76,16 @@ test('panelAction: a deleted panel stays deleted unless a save asks for it', () 
   assert.equal(P({ savedId: '1', found: false, repost: false }), 'skip', 'deleted on purpose → leave it');
   assert.equal(P({ savedId: '1', found: false, repost: true }), 'post', 'a save re-sends it');
 });
+
+/* Each ticket reason can open with its own message; the ticket-wide one is the
+ * fallback for reasons that do not set one. */
+test('greetingFor: per-reason message wins, default fills the gap', () => {
+  const t = { greeting: 'Hey {user}, thanks for reaching out about **{reason}**.' };
+  assert.equal(
+    tickets.greetingFor(t, { label: 'Report a staff member', greeting: 'This goes straight to the owner, {username}.' }),
+    'This goes straight to the owner, {username}.',
+  );
+  assert.equal(tickets.greetingFor(t, { label: 'Server help' }), t.greeting, 'no message of its own');
+  assert.equal(tickets.greetingFor(t, { label: 'x', greeting: '   ' }), t.greeting, 'whitespace is not a message');
+  assert.match(tickets.greetingFor({}, {}), /Ticket for/, 'never empty');
+});
