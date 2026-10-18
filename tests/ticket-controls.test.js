@@ -61,3 +61,18 @@ test('chunkText gives up cleanly on an enormous transcript', () => {
 test('chunkText never returns nothing', () => {
   assert.deepEqual(tickets.chunkText(''), ['(empty transcript)']);
 });
+
+/**
+ * Deleting the panel is deliberate. Only a dashboard save re-sends it — not a
+ * timer, not a restart. (The earlier behaviour kept resurrecting a panel Kevin
+ * had just deleted.)
+ */
+test('panelAction: a deleted panel stays deleted unless a save asks for it', () => {
+  const P = tickets.panelAction;
+  assert.equal(P({ savedId: '', found: false, repost: false }), 'post', 'first-time setup posts');
+  assert.equal(P({ savedId: '', found: false, repost: true }), 'post');
+  assert.equal(P({ savedId: '1', found: true, repost: false }), 'edit', 'still there → edit');
+  assert.equal(P({ savedId: '1', found: true, repost: true }), 'edit');
+  assert.equal(P({ savedId: '1', found: false, repost: false }), 'skip', 'deleted on purpose → leave it');
+  assert.equal(P({ savedId: '1', found: false, repost: true }), 'post', 'a save re-sends it');
+});

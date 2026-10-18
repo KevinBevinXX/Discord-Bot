@@ -47,7 +47,8 @@ configModule.onConfigApplied(async (cfg, { first, source }) => {
   context.setConfig(cfg);
   if (!ready) return; // ready-path applies features once we know the guild; until then just keep the config current
   try {
-    await tickets.apply(cfg);
+    // a save is the one thing that re-sends a panel someone deleted
+    await tickets.apply(cfg, { repost: !first });
     await reactionRoles.apply(cfg);
   } catch (e) {
     err('config', `applying config failed: ${e.message}`);
@@ -70,14 +71,10 @@ client.once(Events.ClientReady, async (c) => {
   // server snapshot for the dashboard's channel/role pickers (10-minute cadence)
   configModule.pushStateCollector(() => state.collect(configModule.get()));
   setInterval(() => void configModule.reload(), 10 * 60 * 1000).unref();
-  // self-heal: re-post panels / re-sync reaction messages if someone deleted them
-  setInterval(async () => {
-    const cfg = configModule.get();
-    await tickets.apply(cfg);
-    await reactionRoles.apply(cfg);
-  }, 5 * 60 * 1000).unref();
+  // deliberately no re-posting sweep: a panel you delete stays deleted until
+  // you save from the dashboard
 
-  log('boot', 'feature sweep started (tickets panel, reaction roles, auto-close timers)');
+  log('boot', 'features applied (tickets panel, reaction roles, auto-close timers)');
 });
 
 client.on(Events.MessageCreate, async (message) => {

@@ -24,9 +24,10 @@ required to deploy a settings change.
   ticket panel someone deleted. `docs/app.js` therefore stamps `savedAt` on
   every save and `src/config.js` compares the RAW file, not the validated
   config. `validate()` drops the key, so it never becomes a setting. Do not
-  "tidy" either half away. A 5-minute sweep in `index.js` re-posts deleted
-  panels as a backstop; `tickets.apply()` only edits a panel whose payload
-  changed, so that sweep is not an edit every tick.
+  "tidy" either half away. Deleting the panel in Discord is deliberate: it
+  stays gone until the next save (`apply(cfg, { repost })`, decided by
+  `panelAction()`). Nothing re-posts it on a timer or on boot, and
+  `tickets.apply()` only edits a panel whose payload actually changed.
 - **state.json is written BY THE BOT for the dashboard** (channels/roles
   snapshot → name dropdowns on the site). It needs `GITHUB_TOKEN` in `.env`
   (fine-grained, this repo, Contents: write). Without it the site degrades to

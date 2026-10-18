@@ -57,8 +57,25 @@ async function resolveChannel(client_, guildId, channelId) {
   }
 }
 
-/** Keep the panel message in step with the configuration. */
-async function apply(config) {
+/**
+ * What apply() should do about the panel message:
+ *   nothing saved yet          → post it (first-time setup)
+ *   saved and still there      → edit it (and only when it actually changed)
+ *   saved, gone, after a save  → post it (the save is the request to send it)
+ *   saved, gone, otherwise     → leave it alone; deleting it was deliberate
+ */
+function panelAction({ savedId, found, repost }) {
+  if (!savedId) return 'post';
+  if (found) return 'edit';
+  return repost ? 'post' : 'skip';
+}
+
+/**
+ * Keep the panel message in step with the configuration.
+ * `opts.repost` marks an apply that came from a dashboard save — the only
+ * thing that re-sends a panel someone deleted.
+ */
+async function apply(config, opts = {}) {
   const t = config.tickets || {};
   const guildId = config.general ? config.general.guildId : '';
   if (!client) return;
@@ -72,22 +89,21 @@ async function apply(config) {
   const print = crypto.createHash('sha256').update(JSON.stringify(panel)).digest('hex').slice(0, 16);
   const prints = runtime.get('ticketPanelPrint', {});
   const savedId = runtime.get('ticketPanel', {})[guildId];
+  let msg = null;
   if (savedId) {
-    try {
-      // a deleted message answers 404 / JSON error 10008 "Unknown message"
-      const msg = await channel.messages.fetch(savedId);
-      if (msg.author && msg.author.id === client.user.id) {
-        // apply() also runs on a 5-minute sweep: only edit a panel that changed
-        if (prints[guildId] !== print) {
-          await msg.edit(panel);
-          runtime.set('ticketPanelPrint', { ...prints, [guildId]: print });
-          log(TAG, `panel updated in #${channel.name ?? t.panelChannelId}`);
-        }
-        return;
-      }
-    } catch {
-      // message gone — fall through and create a new one
+    // a deleted message answers 404 / JSON error 10008 "Unknown message"
+    msg = await channel.messages.fetch(savedId).catch(() => null);
+    if (msg && !(msg.author && msg.author.id === client.user.id)) msg = null;
+  }
+  const action = panelAction({ savedId, found: !!msg, repost: !!opts.repost });
+  if (action === 'skip') return;
+  if (action === 'edit') {
+    if (prints[guildId] !== print) {
+      await msg.edit(panel).catch((e) => err(TAG, `panel edit failed: ${e.message}`));
+      runtime.set('ticketPanelPrint', { ...prints, [guildId]: print });
+      log(TAG, `panel updated in #${channel.name ?? t.panelChannelId}`);
     }
+    return;
   }
   try {
     const created = await channel.send(panel);
@@ -539,4 +555,4 @@ function replyOnce(interaction, content) {
   return fn.call(interaction, { content, ephemeral: true }).catch(() => {});
 }
 
-module.exports = { register, apply, closeTicket, controlsRow, chunkText, IDs };
+module.exports = { register, apply, closeTicket, controlsRow, chunkText, panelAction, IDs };
