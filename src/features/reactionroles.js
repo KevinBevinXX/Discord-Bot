@@ -18,6 +18,25 @@ const theme = require('../theme');
 
 const TAG = 'reactionroles';
 
+/**
+ * Discord calls fail transiently — a 10s connect timeout to the API cost this
+ * server both of its panel reactions AND a member's role, with nothing to try
+ * again. One attempt is not enough for a network call a member is waiting on.
+ */
+async function withRetry(fn, label, attempts = 3) {
+  let lastErr;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      return { ok: true, value: await fn() };
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts) await new Promise((r) => setTimeout(r, 500 * 2 ** (i - 1)));
+    }
+  }
+  err(TAG, `${label} failed after ${attempts} attempts: ${lastErr && lastErr.message}`);
+  return { ok: false, error: lastErr };
+}
+
 // runtime key: reactionPanels = { [guildId]: { [panelName]: messageId } }
 function savedMap() {
   return runtime.get('reactionPanels', {});
@@ -137,11 +156,7 @@ async function ensureReactions(message, panel) {
     // tolerate variant-selector differences
     let has = [...existing].some((k) => stripFE0F(k) === stripFE0F(key));
     if (has) continue;
-    try {
-      await message.react(want);
-    } catch (e) {
-      err(TAG, `react ${b.emoji} failed: ${e.message}`);
-    }
+    await withRetry(() => message.react(want), `react ${b.emoji}`);
   }
 }
 
@@ -307,9 +322,14 @@ async function register(client) {
       const member = await guild.members.fetch(user.id).catch(() => null);
       if (!member) return;
       if (member.roles.cache.has(roleIdGrant.roleId)) return;
-      await member.roles.add(roleIdGrant.roleId, `reaction role (${reaction.emoji.name})`).catch((e) => {
-        reportRoleError(guild, `could not give <@&${roleIdGrant.roleId}> reacting in <#${message.channel.id}>: ${e.message}`);
-      });
+      const granted = await withRetry(
+        () => member.roles.add(roleIdGrant.roleId, `reaction role (${reaction.emoji.name})`),
+        `give <@&${roleIdGrant.roleId}> to ${user.username}`,
+      );
+      if (!granted.ok) {
+        reportRoleError(guild, `could not give <@&${roleIdGrant.roleId}> reacting in <#${message.channel.id}>: ${granted.error && granted.error.message}`);
+        return; // do NOT log it as a grant — it did not happen
+      }
       log(TAG, `${user.username} → ${roleIdGrant.roleId}`);
     } catch (e) {
       err(TAG, `add handler: ${e.message}`);
@@ -337,9 +357,14 @@ async function register(client) {
       if (!guild) return;
       const member = await guild.members.fetch(user.id).catch(() => null);
       if (!member || !member.roles.cache.has(binding.roleId)) return;
-      await member.roles.remove(binding.roleId, 'reaction role removed').catch((e) => {
-        reportRoleError(guild, `could not take <@&${binding.roleId}> un-reacting in <#${message.channel.id}>: ${e.message}`);
-      });
+      const removed = await withRetry(
+        () => member.roles.remove(binding.roleId, 'reaction role removed'),
+        `take <@&${binding.roleId}> from ${user.username}`,
+      );
+      if (!removed.ok) {
+        reportRoleError(guild, `could not take <@&${binding.roleId}> un-reacting in <#${message.channel.id}>: ${removed.error && removed.error.message}`);
+        return;
+      }
       log(TAG, `${user.username} ✕ ${binding.roleId}`);
     } catch (e) {
       err(TAG, `remove handler: ${e.message}`);
@@ -360,4 +385,4 @@ function reportRoleError(guild, text) {
   if (ch && ch.isTextBased()) safeSend(ch, `🔁 Reaction roles: ${text}`, TAG);
 }
 
-module.exports = { register, apply, indexBindings, findBinding, legendFor, labelFor };
+module.exports = { register, apply, indexBindings, findBinding, legendFor, labelFor, withRetry };

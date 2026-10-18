@@ -85,3 +85,33 @@ test('labelFor never shows a raw role ID', () => {
   assert.equal(rr.labelFor({ roleId: '111' }, guild, 0), 'Java player', 'falls back to the role name');
   assert.equal(rr.labelFor({ roleId: '999' }, guild, 3), 'Role 4', 'and to a placeholder if the role is gone');
 });
+
+/* A Discord call that times out once must not silently cost a member their
+ * role: the panel's reactions AND a grant were both lost to a single 10s
+ * connect timeout, with nothing to try again. */
+test('withRetry: succeeds on a later attempt', async () => {
+  let calls = 0;
+  const r = await rr.withRetry(async () => {
+    calls++;
+    if (calls < 3) throw new Error('Connect Timeout Error');
+    return 'granted';
+  }, 'give a role');
+  assert.equal(r.ok, true);
+  assert.equal(r.value, 'granted');
+  assert.equal(calls, 3, 'it kept trying');
+});
+
+test('withRetry: gives up and says so, without throwing', async () => {
+  let calls = 0;
+  const r = await rr.withRetry(async () => { calls++; throw new Error('nope'); }, 'react', 2);
+  assert.equal(r.ok, false);
+  assert.equal(calls, 2);
+  assert.match(r.error.message, /nope/, 'the cause is kept for the log');
+});
+
+test('withRetry: a call that works first time is not repeated', async () => {
+  let calls = 0;
+  const r = await rr.withRetry(async () => { calls++; return 1; }, 'react');
+  assert.equal(calls, 1);
+  assert.equal(r.ok, true);
+});
