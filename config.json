@@ -28,7 +28,8 @@
           "1485349782829531166",
           "1485351562187636831",
           "1485351270310215790"
-        ]
+        ],
+        "greeting": "Hey {user}, thanks for reaching out about *{reason}*.\nA team member will be with you shortly— meanwhile, **describe everything about your inquiry.**"
       },
       {
         "label": "Report a staff member",
@@ -148,5 +149,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-18T04:10:17.191Z"
+  "savedAt": "2026-10-18T04:33:35.205Z"
 }
