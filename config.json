@@ -69,7 +69,7 @@
     "panels": [
       {
         "name": "Reaction Role",
-        "channelId": "",
+        "channelId": "1485343885759615189",
         "style": "reactions",
         "createMode": "new",
         "messageContent": "",
@@ -180,5 +180,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-18T19:05:51.369Z"
+  "savedAt": "2026-10-18T19:06:59.169Z"
 }
