@@ -17,7 +17,8 @@
         "emoji": "🚩",
         "pingRoleIds": [
           "1500541446544031754"
-        ]
+        ],
+        "greeting": "Hey {user}, thanks for reaching out about *{reason}*.\nA team member will be with you shortly — meanwhile, **describe the problem and add screenshots if you have them.**"
       },
       {
         "label": "Partnership/Business Inquiry",
@@ -39,7 +40,15 @@
           "1485349782829531166",
           "1485352180348354663",
           "1485351562187636831"
-        ]
+        ],
+        "greeting": "Hey {user}, thanks for reaching out about *{reason}*.\nA team member will be with you shortly — meanwhile, **describe the problem and add screenshots if you have them.**"
+      },
+      {
+        "label": "Custom Mod Request",
+        "description": "A custom mod i will make for you (Costs real money)",
+        "emoji": "🎮",
+        "pingRoleIds": [],
+        "greeting": "Hey {user}, thanks for reaching out about *{reason}*.\nA team member will be with you shortly— meanwhile, **describe everything about your mod that you want**"
       }
     ],
     "categoryName": "🛠️Support",
@@ -149,5 +158,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-18T04:33:35.205Z"
+  "savedAt": "2026-10-18T04:37:45.990Z"
 }
