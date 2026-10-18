@@ -66,7 +66,29 @@
   "reactionRoles": {
     "enabled": true,
     "removeOnUnreact": true,
-    "panels": []
+    "panels": [
+      {
+        "name": "Reaction Role",
+        "channelId": "",
+        "style": "reactions",
+        "createMode": "new",
+        "messageContent": "",
+        "embedTitle": "",
+        "messageId": "",
+        "bindings": [
+          {
+            "emoji": "📢",
+            "roleId": "1485397890737242122",
+            "description": "Announcement Ping"
+          },
+          {
+            "emoji": "🎊",
+            "roleId": "1485397847112421659",
+            "description": "Giveaway Ping"
+          }
+        ]
+      }
+    ]
   },
   "levels": {
     "enabled": true,
@@ -158,5 +180,5 @@
       "1485349783743893616"
     ]
   },
-  "savedAt": "2026-10-18T04:43:54.310Z"
+  "savedAt": "2026-10-18T19:05:51.369Z"
 }
