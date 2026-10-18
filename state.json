@@ -1,9 +1,9 @@
 {
   "guildId": "1424054439941111860",
   "guildName": "KevinBevinX's Community",
-  "memberCount": 4,
+  "memberCount": 5,
   "botId": "1560471518113435818",
-  "updatedAt": "2026-10-18T04:12:55.454Z",
+  "updatedAt": "2026-10-18T04:13:16.694Z",
   "channels": [
     {
       "id": "1424054440725450892",
@@ -212,6 +212,12 @@
     {
       "id": "1500537842349375649",
       "name": "🎟️tickets",
+      "type": "text",
+      "category": "1500541456790585377"
+    },
+    {
+      "id": "1561230654732107868",
+      "name": "ticket-0004",
       "type": "text",
       "category": "1500541456790585377"
     }
