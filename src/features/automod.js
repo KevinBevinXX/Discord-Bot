@@ -16,7 +16,12 @@
 
 const LEET = {
   '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '6': 'g', '7': 't', '8': 'b', '9': 'g',
-  '@': 'a', '$': 's', '€': 'e',
+  '@': 'a', '$': 's', '€': 'e', '!': 'i', '|': 'i', '¡': 'i', '+': 't', '(': 'c', '<': 'c',
+  '£': 'l', '¥': 'y', '§': 's', '?': '',
+  // Cyrillic / Greek lookalikes — "Ьitch" and "аss" read as Latin to a human
+  'а': 'a', 'в': 'b', 'е': 'e', 'ѕ': 's', 'і': 'i', 'ј': 'j', 'к': 'k', 'м': 'm', 'н': 'h',
+  'о': 'o', 'р': 'p', 'с': 'c', 'т': 't', 'у': 'y', 'х': 'x', 'ь': 'b', 'г': 'r',
+  'α': 'a', 'ε': 'e', 'ι': 'i', 'ο': 'o', 'ρ': 'p', 'τ': 't', 'υ': 'u', 'χ': 'x', 'ν': 'v',
 };
 
 function normalizeText(s) {
@@ -28,6 +33,7 @@ function normalizeText(s) {
     .map((ch) => LEET[ch] || ch)
     .join('')
     .replace(/[^a-z0-9\s]/g, ' ')     // punctuation to spaces (c.o.c -> c o c)
+    .replace(/([a-z])\1{2,}/g, '$1')   // biiitch -> bitch. THREE+ only: folding doubles made 'as' read as 'ass'
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -227,9 +233,44 @@ const HUMAN = {
   messageSpam: 'you are sending messages too fast.',
 };
 
+/**
+ * Which warning role a member should hold at `count` strikes: the highest tier
+ * they have reached, and every other configured tier comes off so the roles
+ * read as a ladder rather than piling up.
+ */
+function pickStrikeRole(strikeRoles, count) {
+  const tiers = (strikeRoles || [])
+    .filter((t) => t && t.roleId && Number(t.strikes) > 0)
+    .sort((a, b) => Number(a.strikes) - Number(b.strikes));
+  const reached = tiers.filter((t) => count >= Number(t.strikes));
+  const earned = reached.length ? reached[reached.length - 1] : null;
+  return {
+    add: earned ? earned.roleId : null,
+    remove: tiers.filter((t) => !earned || t.roleId !== earned.roleId).map((t) => t.roleId),
+  };
+}
+
+async function applyStrikeRoles(message, cfg, count) {
+  const { add, remove } = pickStrikeRole(cfg.automod.strikeRoles, count);
+  const member = message.member;
+  if (!member || (!add && !remove.length)) return;
+  try {
+    if (add && !member.roles.cache.has(add)) {
+      await member.roles.add(add, `auto-mod: ${count} strike${count === 1 ? '' : 's'}`);
+      log(TAG, `${message.author.tag} → warning role at ${count} strikes`);
+    }
+    for (const roleId of remove) {
+      if (member.roles.cache.has(roleId)) await member.roles.remove(roleId, 'auto-mod: moved to another warning tier');
+    }
+  } catch (e) {
+    err(TAG, `warning role failed (is the role above the bot, or is Manage Roles missing?): ${e.message}`);
+  }
+}
+
 async function runLadder(message, cfg, previousCount) {
   const ladder = cfg.automod.strikes || {};
   const now = db.strikeCount(message.guildId, message.author.id);
+  await applyStrikeRoles(message, cfg, now);
   const key = `${message.guildId}:${message.author.id}`;
   let fired = previousCount;
   const tiers = [
@@ -296,4 +337,4 @@ function checkEveryoneMentions(message) {
 module.exports.handleMessage = handleMessage;
 module.exports.resetEscalation = (guildId, userId) => lastEscalation.delete(`${guildId}:${userId}`);
 module.exports.spam = spam;
-Object.assign(module.exports, { normalizeText, checkBannedWords, checkInvites, checkLinks, checkCaps, checkEmojis, checkMentions, checkDuplicate, checkEveryoneMentions, SpamTracker });
+Object.assign(module.exports, { normalizeText, pickStrikeRole, checkBannedWords, checkInvites, checkLinks, checkCaps, checkEmojis, checkMentions, checkDuplicate, checkEveryoneMentions, SpamTracker });

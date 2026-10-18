@@ -1,0 +1,189 @@
+# Starter banned-word list for the auto-mod filter.
+#
+# BASE FORMS ONLY. normalizeText() already folds leetspeak (b1tch, b!tch, @ss),
+# spacing (b i t c h), repeats (fuuuck), accents and Cyrillic/Greek lookalikes,
+# so one entry here covers its variants. Adding "b1tch" as well is wasted space.
+#
+# Single words match whole tokens, so "ass" does not fire on "class" or "pass".
+# A line with a space is matched as a phrase anywhere in the message.
+# Lines starting with # are comments. Merge with: node tools/merge-wordlist.js
+
+# --- profanity -------------------------------------------------------------
+fuck
+fucker
+fucking
+motherfucker
+shit
+shitty
+bullshit
+bitch
+bitches
+asshole
+arsehole
+dumbass
+jackass
+dickhead
+prick
+twat
+wanker
+bollocks
+cunt
+slut
+whore
+skank
+godson of a bitch
+
+# --- sexual / explicit -----------------------------------------------------
+dick
+cock
+penis
+vagina
+pussy
+tits
+titties
+boobs
+blowjob
+handjob
+rimjob
+cum
+cumming
+jizz
+anal
+buttplug
+dildo
+fleshlight
+masturbate
+jerk off
+porn
+pornhub
+hentai
+nudes
+send nudes
+onlyfans
+camgirl
+orgasm
+horny
+milf
+gangbang
+creampie
+deepthroat
+bukkake
+bdsm
+nsfw
+
+# --- sexual content involving minors (zero tolerance) ----------------------
+cp
+child porn
+childporn
+loli
+lolicon
+shota
+shotacon
+jailbait
+pedo
+pedophile
+paedophile
+
+# --- slurs: racial and ethnic ---------------------------------------------
+nigger
+nigga
+niglet
+coon
+jigaboo
+porchmonkey
+spic
+wetback
+beaner
+chink
+gook
+jap
+zipperhead
+sandnigger
+raghead
+towelhead
+camel jockey
+kike
+heeb
+yid
+kraut
+wop
+dago
+guido
+polack
+paki
+abo
+gypsy
+gyppo
+redskin
+injun
+prairie nigger
+half breed
+mulatto
+oreo
+uncle tom
+house nigger
+white trash
+cracker ass
+honky
+gringo
+
+# --- slurs: homophobic and transphobic ------------------------------------
+faggot
+fag
+fags
+faggy
+dyke
+homo
+queer bait
+batty boy
+poof
+poofter
+tranny
+trannie
+shemale
+heshe
+ladyboy
+troon
+
+# --- slurs: ableist and other ----------------------------------------------
+retard
+retarded
+tard
+spastic
+spaz
+mongoloid
+cripple
+midget
+schizo
+
+# --- self-harm and violent harassment --------------------------------------
+kys
+kill yourself
+go die
+neck yourself
+hang yourself
+commit suicide
+slit your wrists
+i hope you die
+
+# --- scams and raid bait ---------------------------------------------------
+free nitro
+nitro giveaway
+steamcommunity gift
+discord nitro
+free robux
+crypto doubler
+
+# --- mild: delete this whole section if casual swearing is allowed ---------
+# These fire on everyday speech more than the rest. "hoe" is also a garden
+# tool and "fag" is a cigarette in British English - decide for your server.
+damn
+goddamn
+crap
+piss
+pissed
+bugger
+bloody hell
+hoe
+bastard
+douchebag

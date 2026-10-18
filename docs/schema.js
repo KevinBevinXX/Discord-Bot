@@ -186,6 +186,10 @@
           { key: 'kickAt', label: 'Kick after N strikes', type: 'number', def: 0, min: 0, max: 100, hint: '0 = never.' },
           { key: 'banAt', label: 'Ban after N strikes', type: 'number', def: 0, min: 0, max: 100, hint: '0 = never.' },
         ] },
+        { key: 'strikeRoles', label: 'Warning roles', type: 'list', def: [], hint: 'Give a role once someone reaches N strikes. They keep only the highest tier they have reached — set one at 1 strike to mark anyone caught at all. The bot must sit ABOVE these roles in the role list.', item: [
+          { key: 'strikes', label: 'At how many strikes', type: 'number', def: 1, min: 1, max: 100 },
+          { key: 'roleId', label: 'Role', type: 'role', required: true },
+        ] },
         { key: 'notifyUser', label: 'Tell the user why a message was removed', type: 'bool', def: true },
       ],
     },
