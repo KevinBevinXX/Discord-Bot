@@ -122,6 +122,7 @@
       "kickAt": 0,
       "banAt": 0
     },
+    "strikeRoles": [],
     "notifyUser": true
   },
   "welcome": {

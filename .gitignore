@@ -3,5 +3,6 @@ node_modules/
 data/*.db
 data/*.db-*
 data/bot.pid
+data/runtime.json
 data/config.local.json
 *.log
