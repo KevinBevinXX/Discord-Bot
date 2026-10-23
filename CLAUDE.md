@@ -77,6 +77,13 @@ required to deploy a settings change.
 - Never commit `.env`, `data/`, or any token. The dashboard token lives in
   the owner's browser localStorage only.
 
+## Deploying elsewhere
+
+`DEPLOY.md` is the blind runbook for a new host — prerequisites, the two
+privileged intents, build, cutover, a systemd unit, and a validation
+checklist with the exact log lines to expect. Keep it true when the deploy
+story changes; it is written for someone with no context on this project.
+
 ## Hosting plan (2026-10-17)
 
 The bot runs on Kevin's machine today (`./run.sh`), but the plan is to move it
